@@ -1,140 +1,240 @@
-# Data Analyst Agent
+# Agency Swarm GitHub Template
 
-[![OpenAI Multimodal Analytics Agent: No-Code Deploy + Repo](https://img.youtube.com/vi/jwbYereWRfA/0.jpg)](https://youtu.be/jwbYereWRfA)
+A production-ready template for deploying [Agency Swarm](https://github.com/VRSEN/agency-swarm) agencies with Docker containerization and automated deployment to the [Agencii](https://agencii.ai/) cloud platform.
 
-An AI-powered data analyst that connects to your analytics platforms, analyzes your data using Python, and delivers actionable insights with visualizations.
-
-> ⚡️ Deploy this agent in less than 60 seconds from our marketplace: https://agencii.ai/marketplace/b7Qsn4O2qLa5wzIjZ8ZE/ 
-
----
-
-## 🎯 What Makes This Different?
-
-Unlike traditional analytics tools or basic AI agents, this agent:
-
-- **Works with ANY API** - Google Analytics, Stripe, PostgreSQL, MongoDB, or any custom platform you use
-- **Generates API requests on the fly** - No pre-configured MCP servers needed
-- **Actually sees its work** - Uses multimodal tool outputs to analyze the charts and visualizations it creates
-- **Provides actionable insights** - Not just data dumps, but clear recommendations prioritized by impact
-- **Deploys in 60 seconds** - Fill one form, hit deploy, done
+**🌐 [Agencii](https://agencii.ai/)** - The official cloud platform for Agency Swarm deployments  
+**🔗 [GitHub App](https://github.com/apps/agencii)** - Automated deployment integration
 
 ---
 
-## ✨ Key Features
+## 🚀 Quick Start
 
-### Any APIs
+### 1. Use This Template
 
-No MCP servers required. The agent reads API docs, generates requests, and connects to any platform you use—all automatically.
+Click **"Use this template"** to create your own repository, or:
 
-### Multimodal
+```bash
+git clone https://github.com/your-username/agency-github-template.git
+cd agency-github-template
+```
 
-Creates charts and graphs, then visually analyzes them just like a human analyst would. Works exactly like Career.io's data analyst.
+> **🌐 For Production**: Sign up at [agencii.ai](https://agencii.ai/) and use this template for automated cloud deployment
 
-### Flexible
+### 2. Install Dependencies
 
-Performs statistican analysis using various data science libraries and techniques by running Python code.
+```bash
+pip install -r requirements.txt
+```
 
----
+### 3. Set Up Environment Variables
 
-## 💼 Perfect For
+Create a `.env` file in the root directory:
 
-Business owners, SaaS founders, enterprises, agencies, and marketing teams who need data-driven insights without hiring a full-time analyst
+```bash
+# Required
+OPENAI_API_KEY=your_openai_api_key_here
 
----
+# Optional - Add any additional API keys your agents need
+# EXAMPLE_API_KEY=your_api_key_here
+```
 
-## 🎨 What You'll Need
+### 4. Test the Example Agency
 
-- **OpenAI API Key** - Must have confirmed organization to access GPT-5
-- **Analytics Platform Credentials** - Service account JSON files or API keys for platforms you use (Google Analytics, Stripe, databases, etc.)
+```bash
+python agency.py
+```
 
----
+This runs the example agency in terminal mode for testing.
 
-## 💎 Pricing Approach
-
-This is a **vertical agent**—meaning it takes almost no work to customize for different clients but delivers massive value.
-
-**Recommended pricing:**
-
-- Single agent: $500-1000/month per client
-- Bundle pricing: $2,500/month for 3-5 specialized agents (includes onboarding, support, and monthly reports)
-
-**Why this works:** The agent creates 10x the value it costs. Typical B2B SaaS pricing model.
-
----
-
-## 🚀 Getting Started
-
-1. Click **Deploy** on the marketplace
-2. Fill out the onboarding form with your business info and analytics platforms
-3. Upload credentials and add your `OPENAI_API_KEY`
-4. Hit **Save**
-
-Your agent will be ready in ~60 seconds.
+> **💡 Pro Tip**: For creating your own agency, open this template in [Cursor IDE](https://cursor.sh/) and use the AI assistant with the `.cursor/rules/workflow.mdc` file for automated agency creation!
 
 ---
 
-## 🔐 Security & Privacy
+## 🏗️ Project Structure
 
-All credentials are securely stored in your container. The agent only accesses data you explicitly authorize. Your data never leaves your agent deployment instance.
-
----
-
-## 🔄 Continuous Improvements
-
-Once deployed, your agent automatically receives updates whenever we ship improvements:
-
-- **Coming Soon:** Pre-loaded docs for all major analytics APIs (near MCP-level reliability)
-- **In Development:** Memory system to remember and avoid past mistakes
-- **Future:** Expert-trained workflows from professional data analysts
-
-You get all future updates automatically—no re-deployment needed.
-
----
-
-## 🛠️ Advanced: How It's Built
-
-### Simple Architecture, Powerful Results
-
-**Just 4 Tools:**
-
-1. `IPythonInterpreter` - Executes Python code to fetch and analyze data
-2. `LocalShellTool` - Manages local file operations
-3. `WebSearchTool` - Finds API documentation when needed
-4. `load_images` - Loads generated charts so the agent can see and analyze them
-
-### The Workflow
-
-1. Agent reads API documentation (or uses built-in knowledge)
-2. Generates API requests to fetch data
-3. Analyzes data using Python (pandas, numpy, scipy, etc.)
-4. Creates visualizations if needed
-5. "Sees" the visualizations using multimodal tool outputs
-6. Delivers insights in simple business language
-
-**Open Source:** Full code available for customization and forking.
+```
+agency-github-template/
+├── agency.py                 # Main entry point
+├── requirements.txt          # Python dependencies
+├── Dockerfile               # Container configuration
+├── .env                     # Environment variables (create this)
+├── example_agent/           # Your agency folder
+    ├── __init__.py
+    ├── example_agent.py
+    ├── instructions.md
+    ├── files/               # Local files accessible to the agent (via files_folder)
+    └── tools/
+        └── ExampleTool.py
+├── example_agent2/
+├── agency_manifesto.md  # Shared instructions
+├── requirements.txt
+├── .env
+└──...
+```
 
 ---
 
-## 🎓 Learn More
+## 🔧 Creating Your Own Agency
 
-Want to understand exactly how this agent works under the hood?
+### 🤖 **AI-Assisted Agency Creation with Cursor**
 
-- **Source Code:** Fully open source and available for forking
-- **Workshops:** Join our [Skool community](https://skool.com/agency-ai) for in-depth buildout sessions
-- **Documentation:** Complete guides on multimodal tool outputs and onboarding features
+This template includes **AI-powered agency creation** using Cursor IDE:
+
+1. **Open this project in Cursor IDE**
+
+2. **Use the AI Assistant** to create your agency by referencing:
+   ```
+   📁 .cursor/rules/workflow.mdc
+   ```
+3. **Simply ask the AI:**
+
+   > "Create a new agency using the .cursor workflow"
+
+   The AI will guide you through the complete 7-step process:
+
+   - ✅ PRD Creation
+   - ✅ Folder Structure Setup
+   - ✅ Tool Development
+   - ✅ Agent Creation
+   - ✅ Agency Configuration
+   - ✅ Testing & Validation
+   - ✅ Iteration & Refinement
+
+### 📋 **What the AI Will Do For You**
+
+The AI assistant will automatically:
+
+- Create proper folder structures
+- Generate agent classes and instructions
+- Build custom tools with full functionality
+- Set up communication flows
+- Create the main agency file
+- Test everything to ensure it works
+
+### 🚀 **Manual Alternative (Advanced Users)**
+
+If you prefer manual setup, replace the `ExampleAgency/` folder with your own agency structure following the Agency Swarm conventions.
+
+### Agency Structure Requirements
+
+Your agency must follow this structure:
+
+- **Agency Folder**: Contains all agents and manifesto
+- **Agent Folders**: Each agent has its own folder with:
+  - `AgentName.py` - Agent class definition
+  - `instructions.md` - Agent-specific instructions
+  - `tools/` - Folder containing agent tools
+- **agency_manifesto.md** - Shared instructions for all agents
 
 ---
 
-## 💬 Get Support
+## 🚀 Production Deployment with Agencii
 
-Questions? Need help with this agent?
+### **🌐 Deploy to Agencii Cloud Platform**
 
-**Post in our community:** [skool.com/agency-ai](https://skool.com/agency-ai)
+For production deployment, use the [Agencii](https://agencii.ai/) platform:
 
-## 🚀 Ready to Deploy?
+#### **Step 1: Create Account & Use Template**
 
-**No credit card required to get started.**
+1. **Sign up** at [agencii.ai](https://agencii.ai/)
+2. **Use this template** to create your repository
+3. **Develop your agency** using Cursor IDE with `.cursor` workflow
 
-Click "Deploy" → Fill the form → Start analyzing data in 60 seconds.
+#### **Step 2: Install GitHub App**
 
-Your data analyst is waiting.
+1. **Install** the [Agencii GitHub App](https://github.com/apps/agencii)
+2. **Grant permissions** to your repository
+3. **Configure** environment variables in Agencii dashboard
+
+#### **Step 3: Deploy**
+
+1. **Push to main branch** - Agencii automatically detects and deploys
+2. **Monitor deployment** in your Agencii dashboard
+3. **Access your live agency** via provided endpoints
+
+### **🔄 Automatic Deployments**
+
+- **Auto-deploy** on every push to `main` branch
+- **Zero-downtime** deployments with rollback capability
+- **Environment management** through Agencii dashboard
+
+---
+
+## 🔨 Development Workflow
+
+### **🎯 Recommended: AI-Assisted Development**
+
+1. **Open Cursor IDE** with this template
+2. **Ask the AI**: _"Create a new agency using the .cursor workflow"_
+3. **Follow the guided process** - the AI handles everything automatically
+4. **Test your agency**: `python agency.py`
+5. **Deploy to production**: Install [Agencii GitHub App](https://github.com/apps/agencii) and push to main
+
+### **⚙️ Manual Development (Advanced)**
+
+If you prefer hands-on development:
+
+1. **Create Tools**: Build agent tools in `tools/` folders
+2. **Configure Agents**: Write `instructions.md` and agent classes
+3. **Test Locally**: Run `python agency.py`
+4. **Deploy**: Push to your preferred platform
+
+The `.cursor/rules/workflow.mdc` file contains the complete development specifications for manual implementation.
+
+---
+
+## 📚 Key Features
+
+- **🌐 Agencii Cloud Deploy**: One-click deployment to [Agencii platform](https://agencii.ai/)
+- **🤖 AI-Assisted Creation**: Built-in Cursor IDE workflow for automated agency development
+- **🔄 Auto-Deploy**: Automatic deployment on push to main branch
+- **🚀 Ready-to-Deploy**: Dockerfile and requirements included
+- **🔧 Modular Structure**: Easy to customize and extend
+- **🛠️ Example Implementation**: Complete working example
+- **📦 Container Ready**: Docker configuration for any platform
+- **🔒 Environment Management**: Secure API key handling via Agencii dashboard
+- **🧪 Local Testing**: Terminal demo for development
+- **📋 Guided Workflow**: 7-step process with AI assistance
+
+---
+
+## 📖 Learn More
+
+- **[Agency Swarm Documentation](https://agency-swarm.ai/)**
+- **[Agency Swarm GitHub](https://github.com/VRSEN/agency-swarm)**
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+---
+
+## ⚡ Quick Tips
+
+- **Start Small**: Begin with 1-2 agents and expand
+- **Test Tools**: Each tool should work independently
+- **Clear Instructions**: Write detailed agent instructions
+- **Environment Setup**: Always use `.env` for API keys
+- **Documentation**: Update instructions as you develop
+
+---
+
+**Ready to build your AI agency?** 🤖✨
+
+### 🌐 **Production Route (Recommended)**
+
+1. **Sign up** at [agencii.ai](https://agencii.ai/)
+2. **Use this template** to create your repository
+3. **Install** [Agencii GitHub App](https://github.com/apps/agencii)
+4. **Push to main** → Automatic deployment!
+
+### 🛠️ **Development Route**
+
+Open this template in **Cursor IDE** and ask the AI to create your agency using the `.cursor` workflow. The AI will handle everything from setup to testing automatically!
+
+For manual development, replace the `ExampleAgency` with your own implementation and start deploying intelligent agent systems!
