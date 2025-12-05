@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html lang='es'>
+<head>
+    <meta charset='UTF-8'>
+    <title>Reporte de Mortalidad por Diabetes - UMF 168</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2, h3 { color: #003366; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; }
+        th { background-color: #e6f0ff; }
+        img { max-width: 100%; height: auto; margin-bottom: 20px; }
+        .nota { font-size: 0.9em; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Reporte de Mortalidad por Diabetes<br>UMF 168</h1>
+    <p><strong>Ámbito:</strong> UMF 168, población adscrita a Medicina Familiar (PAMF).<br>
+       <strong>Periodo:</strong> 2014–2024.<br>
+       <strong>Indicador:</strong> Defunciones por diabetes y tasa de mortalidad por 100,000 adscritos.</p>
+
+    <h2>1. Serie histórica de mortalidad</h2>
+    <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: center;">
+      <th>Anio</th>
+      <th>defunciones_totales</th>
+      <th>poblacion_total</th>
+      <th>tasa_mortalidad_100k</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2014</td>
+      <td>12</td>
+      <td>69557</td>
+      <td>17.25</td>
+    </tr>
+    <tr>
+      <td>2015</td>
+      <td>12</td>
+      <td>71571</td>
+      <td>16.77</td>
+    </tr>
+    <tr>
+      <td>2016</td>
+      <td>18</td>
+      <td>70610</td>
+      <td>25.49</td>
+    </tr>
+    <tr>
+      <td>2017</td>
+      <td>6</td>
+      <td>74707</td>
+      <td>8.03</td>
+    </tr>
+    <tr>
+      <td>2018</td>
+      <td>10</td>
+      <td>77948</td>
+      <td>12.83</td>
+    </tr>
+    <tr>
+      <td>2019</td>
+      <td>6</td>
+      <td>80839</td>
+      <td>7.42</td>
+    </tr>
+    <tr>
+      <td>2020</td>
+      <td>11</td>
+      <td>82840</td>
+      <td>13.28</td>
+    </tr>
+    <tr>
+      <td>2021</td>
+      <td>10</td>
+      <td>82938</td>
+      <td>12.06</td>
+    </tr>
+    <tr>
+      <td>2022</td>
+      <td>8</td>
+      <td>84031</td>
+      <td>9.52</td>
+    </tr>
+    <tr>
+      <td>2023</td>
+      <td>7</td>
+      <td>85875</td>
+      <td>8.15</td>
+    </tr>
+    <tr>
+      <td>2024</td>
+      <td>11</td>
+      <td>87435</td>
+      <td>12.58</td>
+    </tr>
+  </tbody>
+</table>
+    <p class='nota'>Nota: La tasa se calcula como (defunciones / población adscrita PAMF en junio) × 100,000.</p>
+
+    <h2>2. Gráficas</h2>
+    <h3>2.1 Defunciones absolutas por año</h3>
+    <img src='mortalidad_umf168_defunciones.png' alt='Defunciones por diabetes UMF 168'>
+
+    <h3>2.2 Tasa de mortalidad por 100,000 adscritos</h3>
+    <img src='mortalidad_umf168_tasa.png' alt='Tasa de mortalidad por diabetes UMF 168'>
+
+    <h2>3. Comentario epidemiológico breve</h2>
+    <p>
+    La mortalidad por diabetes en la UMF 168 muestra un pico claro en 2016, con la tasa más alta del periodo.
+    A partir de 2017 las tasas se mantienen en un rango moderado (aprox. 7–13 defunciones por 100,000 adscritos),
+    con ligera variabilidad año con año. La población adscrita ha aumentado de alrededor de 70 mil a más de 87 mil
+    personas, por lo que el uso de tasas permite una mejor comparación temporal que los números absolutos.
+    </p>
+
+    <p class='nota'>Fuente: DAS_DM (MORTA_DIABETES, tb_poblacion). Cálculos propios.</p>
+</body>
+</html>

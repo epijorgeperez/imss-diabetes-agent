@@ -28,9 +28,6 @@ El agente debe operar bajo reglas estrictas de consumo de datos para evitar cola
 
 * [cite_start]**Volumen:** Las tablas contienen más de **1 millón de registros**[cite: 208].
 * [cite_start]**Latencia Histórica:** La carga de datos crudos en la aplicación anterior tomaba entre **5 a 8 minutos**, provocando timeouts en la inicialización[cite: 195, 353].
-* **Regla de Oro para el Agente:**
-    * PROHIBIDO: `SELECT * FROM tabla`.
-    * MANDATORIO: El agente solo debe ejecutar consultas de agregación (`COUNT`, `SUM`, `AVG`, `GROUP BY`) o filtrar por `TOP N`.
 * [cite_start]**Timeouts:** Se deben configurar timeouts extendidos en el servidor web (FastAPI/Uvicorn), similares a los **600 segundos** configurados previamente en Shiny Server, para dar tiempo a consultas complejas[cite: 333].
 
 ## 4. Seguridad y Gestión de Credenciales

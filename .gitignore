@@ -85,3 +85,6 @@ service-account.json
 *.pem
 *.key
 
+/backend/analytic-agent-example/*
+/backend/shiny-example-etl-docs/*
+/backend/.agency_swarm_chats/
