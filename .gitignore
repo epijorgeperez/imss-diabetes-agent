@@ -88,3 +88,4 @@ service-account.json
 /backend/analytic-agent-example/*
 /backend/shiny-example-etl-docs/*
 /backend/.agency_swarm_chats/
+/backend/docs/

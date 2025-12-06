@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IMSS Diabetes Agent - API Test Console</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container { 
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+        }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0 0 0; opacity: 0.9; font-size: 14px; }
+        
+        .content { display: flex; }
+        .left-panel { 
+            width: 400px;
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+        .right-panel { 
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        input[type="text"] {
+            margin-bottom: 8px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #d0d0d0;
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .button-group button { flex: 1; }
+        
+        #messages {
+            flex: 1;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-y: auto;
+            background: white;
+            min-height: 400px;
+            max-height: 600px;
+        }
+        
+        .event {
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .event-time {
+            color: #666;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .event.info { background: #e3f2fd; border-left: 3px solid #2196f3; }
+        .event.tool { background: #fff3e0; border-left: 3px solid #ff9800; }
+        .event.result { background: #e8f5e9; border-left: 3px solid #4caf50; }
+        .event.message { background: #f3e5f5; border-left: 3px solid #9c27b0; }
+        .event.error { background: #ffebee; border-left: 3px solid #f44336; }
+        
+        pre {
+            margin: 8px 0 0 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .examples {
+            display: grid;
+            gap: 8px;
+        }
+        .example-btn {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .example-btn:hover {
+            background: #f5f5f5;
+            border-color: #667eea;
+        }
+        
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .status.connected { background: #e8f5e9; color: #2e7d32; }
+        .status.loading { background: #fff3e0; color: #f57c00; }
+        
+        .chat-id-display {
+            font-family: monospace;
+            font-size: 11px;
+            color: #666;
+            padding: 6px 8px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+        
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible:hover {
+            text-decoration: underline;
+        }
+        
+        /* Debug Panel */
+        .debug-panel {
+            margin-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+        .debug-header {
+            padding: 15px 20px;
+            background: #263238;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .debug-header:hover {
+            background: #37474f;
+        }
+        .debug-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .debug-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .debug-content {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .debug-content.collapsed {
+            display: none;
+        }
+        .log-entry {
+            margin: 3px 0;
+            padding: 4px 8px;
+            border-left: 3px solid transparent;
+            line-height: 1.5;
+        }
+        .log-entry.debug { border-left-color: #64b5f6; color: #64b5f6; }
+        .log-entry.info { border-left-color: #81c784; color: #81c784; }
+        .log-entry.warn { border-left-color: #ffb74d; color: #ffb74d; }
+        .log-entry.error { border-left-color: #e57373; color: #e57373; }
+        .log-entry.success { border-left-color: #4caf50; color: #4caf50; font-weight: 600; }
+        .log-timestamp {
+            color: #757575;
+            font-size: 10px;
+            margin-right: 8px;
+        }
+        .log-tag {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .log-details {
+            margin-left: 20px;
+            color: #9e9e9e;
+            font-size: 11px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+        .filter-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .filter-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: 1px solid #666;
+            background: transparent;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .filter-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            padding: 10px 20px;
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        .stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 IMSS Diabetes Agent - API Test Console</h1>
+            <p>Test streaming, file attachments, and conversation continuity</p>
+        </div>
+        
+        <div class="content">
+            <!-- Left Panel: Controls -->
+            <div class="left-panel">
+                <div class="section">
+                    <div class="section-title">Session</div>
+                    <div class="chat-id-display" id="chatIdDisplay">Loading...</div>
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="copyChatId()">📋 Copy ID</button>
+                        <button class="btn-danger" onclick="resetConversation()">🔄 New Chat</button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">Query</div>
+                    <textarea id="query" placeholder="Escribe tu pregunta...">¿Cuántos casos de diabetes hubo en 2024?</textarea>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title collapsible" onclick="toggleSection('filesSection')">
+                        📎 File Attachments (Optional) ▼
+                    </div>
+                    <div id="filesSection" style="display: none;">
+                        <input type="text" id="fileName1" placeholder="Filename (e.g., data.csv)">
+                        <input type="text" id="fileUrl1" placeholder="URL to file">
+                        <input type="text" id="fileName2" placeholder="Filename 2">
+                        <input type="text" id="fileUrl2" placeholder="URL 2">
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title collapsible" onclick="toggleSection('contextSection')">
+                        🔐 User Context (Optional) ▼
+                    </div>
+                    <div id="contextSection" style="display: none;">
+                        <input type="text" id="userId" placeholder="User ID">
+                        <input type="text" id="userRole" placeholder="User Role (e.g., admin)">
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title collapsible" onclick="toggleSection('instructionsSection')">
+                        📝 Additional Instructions (Optional) ▼
+                    </div>
+                    <div id="instructionsSection" style="display: none;">
+                        <textarea id="additionalInstructions" placeholder="Extra context for the agent..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="sendQuery(true)" id="streamBtn">
+                        ▶️ Stream
+                    </button>
+                    <button class="btn-success" onclick="sendQuery(false)" id="syncBtn">
+                        📤 Sync
+                    </button>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">Quick Examples</div>
+                    <div class="examples">
+                        <button class="example-btn" onclick="loadExample(1)">
+                            📊 Casos totales 2024
+                        </button>
+                        <button class="example-btn" onclick="loadExample(2)">
+                            📈 Incidencia por delegación
+                        </button>
+                        <button class="example-btn" onclick="loadExample(3)">
+                            💀 Mortalidad UMF 168
+                        </button>
+                        <button class="example-btn" onclick="loadExample(4)">
+                            🗺️ Análisis geográfico
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Messages -->
+            <div class="right-panel">
+                <div class="button-group" style="margin-bottom: 12px;">
+                    <button class="btn-secondary" onclick="clearMessages()">🗑️ Clear</button>
+                    <button class="btn-secondary" onclick="exportMessages()">💾 Export</button>
+                </div>
+                <div id="messages"></div>
+            </div>
+        </div>
+        
+        <!-- Debug Panel -->
+        <div class="debug-panel">
+            <div class="debug-header" onclick="toggleDebugPanel()">
+                <div class="debug-title">
+                    🐛 Debug Console
+                    <span id="debugBadge" style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; margin-left: 10px; font-size: 11px;">0 logs</span>
+                </div>
+                <div class="debug-controls" onclick="event.stopPropagation()">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-level="all" onclick="setLogFilter('all')">All</button>
+                        <button class="filter-btn" data-level="debug" onclick="setLogFilter('debug')">Debug</button>
+                        <button class="filter-btn" data-level="info" onclick="setLogFilter('info')">Info</button>
+                        <button class="filter-btn" data-level="warn" onclick="setLogFilter('warn')">Warn</button>
+                        <button class="filter-btn" data-level="error" onclick="setLogFilter('error')">Error</button>
+                    </div>
+                    <button class="btn-small btn-secondary" onclick="clearLogs()">Clear</button>
+                    <button class="btn-small btn-secondary" onclick="exportLogs()">Export</button>
+                </div>
+            </div>
+            <div id="debugContent" class="debug-content"></div>
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-label">Total Logs:</span>
+                    <span class="stat-value" id="statTotal">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Requests:</span>
+                    <span class="stat-value" id="statRequests">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Avg Response Time:</span>
+                    <span class="stat-value" id="statAvgTime">0ms</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Errors:</span>
+                    <span class="stat-value" id="statErrors">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Events Received:</span>
+                    <span class="stat-value" id="statEvents">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging system
+        const debugLogs = [];
+        const debugStats = {
+            totalLogs: 0,
+            requests: 0,
+            responseTimes: [],
+            errors: 0,
+            events: 0
+        };
+        let currentLogFilter = 'all';
+        
+        function log(level, tag, message, details = null) {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const entry = { timestamp, level, tag, message, details };
+            debugLogs.push(entry);
+            debugStats.totalLogs++;
+            
+            if (level === 'error') debugStats.errors++;
+            
+            if (currentLogFilter === 'all' || currentLogFilter === level) {
+                appendLogEntry(entry);
+            }
+            
+            updateDebugBadge();
+            updateStats();
+        }
+        
+        function appendLogEntry(entry) {
+            const debugContent = document.getElementById('debugContent');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry ${entry.level}`;
+            logDiv.dataset.level = entry.level;
+            
+            let html = `<span class="log-timestamp">${entry.timestamp}</span>`;
+            html += `<span class="log-tag">${entry.tag}</span>`;
+            html += entry.message;
+            
+            if (entry.details) {
+                html += `<div class="log-details">${typeof entry.details === 'object' ? JSON.stringify(entry.details, null, 2) : entry.details}</div>`;
+            }
+            
+            logDiv.innerHTML = html;
+            debugContent.appendChild(logDiv);
+            debugContent.scrollTop = debugContent.scrollHeight;
+        }
+        
+        function toggleDebugPanel() {
+            const content = document.getElementById('debugContent');
+            content.classList.toggle('collapsed');
+        }
+        
+        function setLogFilter(level) {
+            currentLogFilter = level;
+            
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.level === level);
+            });
+            
+            // Filter logs
+            const debugContent = document.getElementById('debugContent');
+            debugContent.innerHTML = '';
+            
+            debugLogs.forEach(entry => {
+                if (level === 'all' || entry.level === level) {
+                    appendLogEntry(entry);
+                }
+            });
+        }
+        
+        function clearLogs() {
+            if (confirm('Clear all debug logs?')) {
+                debugLogs.length = 0;
+                debugStats.totalLogs = 0;
+                debugStats.requests = 0;
+                debugStats.responseTimes = [];
+                debugStats.errors = 0;
+                debugStats.events = 0;
+                document.getElementById('debugContent').innerHTML = '';
+                updateDebugBadge();
+                updateStats();
+                log('info', 'SYSTEM', 'Debug logs cleared');
+            }
+        }
+        
+        function exportLogs() {
+            const text = debugLogs.map(entry => 
+                `[${entry.timestamp}] [${entry.level.toUpperCase()}] [${entry.tag}] ${entry.message}${entry.details ? '\n  ' + JSON.stringify(entry.details) : ''}`
+            ).join('\n');
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `debug-log-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('info', 'EXPORT', 'Debug logs exported');
+        }
+        
+        function updateDebugBadge() {
+            document.getElementById('debugBadge').textContent = `${debugStats.totalLogs} logs`;
+        }
+        
+        function updateStats() {
+            document.getElementById('statTotal').textContent = debugStats.totalLogs;
+            document.getElementById('statRequests').textContent = debugStats.requests;
+            document.getElementById('statErrors').textContent = debugStats.errors;
+            document.getElementById('statEvents').textContent = debugStats.events;
+            
+            if (debugStats.responseTimes.length > 0) {
+                const avg = debugStats.responseTimes.reduce((a, b) => a + b, 0) / debugStats.responseTimes.length;
+                document.getElementById('statAvgTime').textContent = `${Math.round(avg)}ms`;
+            }
+        }
+        
+        // Main application state
+        const messagesDiv = document.getElementById('messages');
+        let currentChatId = null;
+        
+        // Initialize chat ID on load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadChatId();
+            log('info', 'INIT', 'Test console initialized');
+        });
+        
+        function loadChatId() {
+            const saved = localStorage.getItem('imss_diabetes_test_chat_id');
+            if (saved) {
+                currentChatId = saved;
+                log('info', 'SESSION', 'Loaded existing chat ID from localStorage', { chat_id: currentChatId });
+            } else {
+                currentChatId = crypto.randomUUID();
+                localStorage.setItem('imss_diabetes_test_chat_id', currentChatId);
+                log('success', 'SESSION', 'Created new chat ID', { chat_id: currentChatId });
+            }
+            document.getElementById('chatIdDisplay').textContent = currentChatId;
+        }
+        
+        function copyChatId() {
+            navigator.clipboard.writeText(currentChatId);
+            alert('Chat ID copied to clipboard!');
+            log('debug', 'SESSION', 'Chat ID copied to clipboard', { chat_id: currentChatId });
+        }
+        
+        function resetConversation() {
+            if (confirm('Start a new conversation? (Current history will be lost)')) {
+                const oldChatId = currentChatId;
+                currentChatId = crypto.randomUUID();
+                localStorage.setItem('imss_diabetes_test_chat_id', currentChatId);
+                document.getElementById('chatIdDisplay').textContent = currentChatId;
+                clearMessages();
+                addMessage('🔄 New conversation started', 'info');
+                log('success', 'SESSION', 'Conversation reset', { 
+                    old_chat_id: oldChatId, 
+                    new_chat_id: currentChatId 
+                });
+            }
+        }
+        
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const wasHidden = section.style.display === 'none';
+            section.style.display = wasHidden ? 'block' : 'none';
+            log('debug', 'UI', `Section ${sectionId} ${wasHidden ? 'opened' : 'closed'}`);
+        }
+        
+        function loadExample(num) {
+            const examples = {
+                1: '¿Cuántos casos nuevos de diabetes hubo en 2024?',
+                2: 'Dame la incidencia de diabetes por delegación en 2024',
+                3: 'Analiza la mortalidad por diabetes en la UMF 168 en los últimos años',
+                4: 'Genera un análisis geográfico de la incidencia de diabetes en México'
+            };
+            document.getElementById('query').value = examples[num];
+            log('info', 'EXAMPLE', `Loaded example ${num}`, { query: examples[num] });
+        }
+        
+        function exportMessages() {
+            const text = messagesDiv.innerText;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `imss-diabetes-test-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log('info', 'EXPORT', 'Messages exported to file');
+        }
+        
+        async function sendQuery(streaming = true) {
+            const query = document.getElementById('query').value;
+            if (!query.trim()) {
+                alert('Please enter a query');
+                log('warn', 'REQUEST', 'Empty query attempted');
+                return;
+            }
+            
+            const requestId = `req_${Date.now()}`;
+            const startTime = Date.now();
+            const mode = streaming ? 'STREAMING' : 'SYNC';
+            
+            log('info', 'REQUEST', `Starting ${mode} request`, { request_id: requestId, query: query.substring(0, 100) });
+            
+            const streamBtn = document.getElementById('streamBtn');
+            const syncBtn = document.getElementById('syncBtn');
+            streamBtn.disabled = true;
+            syncBtn.disabled = true;
+            
+            // Clear previous messages
+            messagesDiv.innerHTML = '';
+            addMessage(`⏱️ Started at ${new Date().toLocaleTimeString()}`, 'info');
+            addMessage(`💬 Query: ${query}`, 'info');
+            
+            // Build payload
+            const payload = {
+                message: query,
+                chat_id: currentChatId
+            };
+            
+            log('debug', 'PAYLOAD', 'Base payload created', { chat_id: currentChatId });
+            
+            // Add file URLs if provided
+            const fileName1 = document.getElementById('fileName1').value.trim();
+            const fileUrl1 = document.getElementById('fileUrl1').value.trim();
+            const fileName2 = document.getElementById('fileName2').value.trim();
+            const fileUrl2 = document.getElementById('fileUrl2').value.trim();
+            
+            if (fileName1 && fileUrl1) {
+                payload.file_urls = { [fileName1]: fileUrl1 };
+                if (fileName2 && fileUrl2) {
+                    payload.file_urls[fileName2] = fileUrl2;
+                }
+                addMessage(`📎 Attaching files: ${Object.keys(payload.file_urls).join(', ')}`, 'info');
+                log('info', 'FILES', 'File attachments added', payload.file_urls);
+            }
+            
+            // Add user context if provided
+            const userId = document.getElementById('userId').value.trim();
+            const userRole = document.getElementById('userRole').value.trim();
+            if (userId || userRole) {
+                payload.user_context = {};
+                if (userId) payload.user_context.user_id = userId;
+                if (userRole) payload.user_context.user_role = userRole;
+                addMessage(`🔐 User context: ${JSON.stringify(payload.user_context)}`, 'info');
+                log('debug', 'CONTEXT', 'User context added', payload.user_context);
+            }
+            
+            // Add additional instructions if provided
+            const additionalInstructions = document.getElementById('additionalInstructions').value.trim();
+            if (additionalInstructions) {
+                payload.additional_instructions = additionalInstructions;
+                addMessage(`📝 Additional instructions provided`, 'info');
+                log('debug', 'INSTRUCTIONS', 'Additional instructions provided');
+            }
+            
+            debugStats.requests++;
+            updateStats();
+            
+            try {
+                if (streaming) {
+                    await sendStreamingQuery(payload, startTime, requestId);
+                } else {
+                    await sendSyncQuery(payload, startTime, requestId);
+                }
+                
+                const duration = Date.now() - startTime;
+                debugStats.responseTimes.push(duration);
+                log('success', mode, `Request completed`, { request_id: requestId, duration_ms: duration });
+                
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                addMessage(`❌ Error: ${error.message}`, 'error');
+                log('error', mode, `Request failed: ${error.message}`, { 
+                    request_id: requestId, 
+                    duration_ms: duration,
+                    error: error.stack 
+                });
+            } finally {
+                streamBtn.disabled = false;
+                syncBtn.disabled = false;
+                updateStats();
+            }
+        }
+        
+        async function sendStreamingQuery(payload, startTime, requestId) {
+            const url = 'http://localhost:8080/imss-diabetes/get_response_stream';
+            log('debug', 'STREAMING', `Initiating SSE connection`, { url, request_id: requestId });
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                log('error', 'STREAMING', `HTTP error ${response.status}`, { error: errorText });
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            
+            log('success', 'STREAMING', 'SSE connection established', { status: response.status });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let eventType = '';
+            let eventCount = 0;
+            let chunkCount = 0;
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    log('debug', 'STREAMING', 'Stream ended', { chunks: chunkCount, events: eventCount });
+                    break;
+                }
+                
+                chunkCount++;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        eventType = line.slice(7).trim();
+                        log('debug', 'SSE', `Event type: ${eventType}`, { chunk: chunkCount });
+                    } else if (line.startsWith('data: ')) {
+                        const data = line.slice(6).trim();
+                        if (!data || data === '[DONE]') continue;
+                        
+                        try {
+                            const parsed = JSON.parse(data);
+                            const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                            eventCount++;
+                            debugStats.events++;
+                            
+                            log('info', 'EVENT', `${eventType} received`, { 
+                                elapsed_s: elapsed,
+                                data_preview: JSON.stringify(parsed).substring(0, 100)
+                            });
+                            
+                            displayEvent(eventType, parsed, elapsed);
+                        } catch (e) {
+                            log('error', 'STREAMING', `Failed to parse event data`, { 
+                                event_type: eventType,
+                                error: e.message,
+                                data: data.substring(0, 100)
+                            });
+                        }
+                    }
+                }
+            }
+            
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            addMessage(`✅ Stream complete in ${totalTime}s`, 'info');
+            log('success', 'STREAMING', `Stream completed`, { 
+                total_time_s: totalTime, 
+                total_chunks: chunkCount, 
+                total_events: eventCount 
+            });
+        }
+        
+        async function sendSyncQuery(payload, startTime, requestId) {
+            const url = 'http://localhost:8080/imss-diabetes/get_response';
+            log('debug', 'SYNC', `Sending synchronous request`, { url, request_id: requestId });
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                log('error', 'SYNC', `HTTP error ${response.status}`, { error: errorText });
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            
+            log('success', 'SYNC', 'Response received', { status: response.status });
+
+            const data = await response.json();
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            
+            log('debug', 'SYNC', 'Response received, raw structure', { 
+                keys: Object.keys(data),
+                data_preview: JSON.stringify(data).substring(0, 200)
+            });
+            
+            // Extract final output - try different possible structures
+            let finalOutput = data.final_output || data.output || data.content || '';
+            
+            // If new_messages structure (like streaming), extract assistant message
+            if (!finalOutput && data.new_messages && Array.isArray(data.new_messages)) {
+                const assistantMsg = data.new_messages.find(m => m.role === 'assistant' && m.type === 'message');
+                if (assistantMsg) {
+                    finalOutput = Array.isArray(assistantMsg.content)
+                        ? assistantMsg.content.map(c => c.text || c).join('')
+                        : assistantMsg.content;
+                }
+            }
+            
+            log('debug', 'SYNC', 'Response parsed', { 
+                message_id: data.message_id,
+                has_intermediate_steps: !!data.intermediate_steps,
+                has_file_ids_map: !!data.file_ids_map,
+                final_output_length: finalOutput?.length || 0
+            });
+            
+            // Display tool calls from intermediate_steps or new_messages
+            const steps = data.intermediate_steps || [];
+            const newMessages = data.new_messages || [];
+            
+            if (steps.length > 0) {
+                log('info', 'SYNC', `Processing ${steps.length} intermediate steps`);
+                
+                steps.forEach((step, idx) => {
+                    if (step.type === 'tool_call' || step.type === 'function_call') {
+                        const toolName = step.tool_name || step.name;
+                        const toolInput = step.tool_input || step.arguments;
+                        log('debug', 'TOOL', `Tool call ${idx + 1}: ${toolName}`);
+                        addMessage(
+                            `🔧 ${toolName}\n<pre>${JSON.stringify(toolInput, null, 2)}</pre>`,
+                            'tool',
+                            true
+                        );
+                    } else if (step.type === 'tool_result' || step.type === 'function_call_output') {
+                        const output = step.tool_output || step.output;
+                        log('debug', 'TOOL', `Tool result ${idx + 1}`, { 
+                            output_length: output?.length || 0 
+                        });
+                        addMessage(
+                            `✅ Result:\n<pre>${output?.substring(0, 500) || 'OK'}</pre>`,
+                            'result',
+                            true
+                        );
+                    }
+                });
+            } else if (newMessages.length > 0) {
+                log('info', 'SYNC', `Processing ${newMessages.length} messages`);
+                
+                newMessages.forEach((msg, idx) => {
+                    if (msg.type === 'function_call') {
+                        const toolArgs = typeof msg.arguments === 'string' ? JSON.parse(msg.arguments) : msg.arguments;
+                        log('debug', 'TOOL', `Tool call ${idx + 1}: ${msg.name}`);
+                        addMessage(
+                            `🔧 ${msg.name}\n<pre>${JSON.stringify(toolArgs, null, 2)}</pre>`,
+                            'tool',
+                            true
+                        );
+                    } else if (msg.type === 'function_call_output') {
+                        log('debug', 'TOOL', `Tool result ${idx + 1}`);
+                        addMessage(
+                            `✅ Result:\n<pre>${msg.output?.substring(0, 500) || 'OK'}</pre>`,
+                            'result',
+                            true
+                        );
+                    }
+                });
+            }
+            
+            // Display final output
+            if (finalOutput) {
+                addMessage(`💬 Final Response:\n${finalOutput}`, 'message');
+                log('info', 'RESPONSE', 'Final output displayed', { 
+                    length: finalOutput.length 
+                });
+            } else {
+                log('warn', 'RESPONSE', 'No final output found in response', { data_keys: Object.keys(data) });
+                addMessage('⚠️ No final output in response (check debug logs)', 'info');
+            }
+            
+            // Display file_ids_map if present
+            if (data.file_ids_map && Object.keys(data.file_ids_map).length > 0) {
+                log('success', 'FILES', 'Files uploaded successfully', data.file_ids_map);
+                addMessage(
+                    `📎 Uploaded files:\n<pre>${JSON.stringify(data.file_ids_map, null, 2)}</pre>`,
+                    'info',
+                    true
+                );
+            }
+            
+            addMessage(`✅ Complete in ${totalTime}s`, 'info');
+        }
+        
+        function displayEvent(type, data, timestamp) {
+            log('debug', 'DISPLAY', `Displaying event: ${type}`, { elapsed_s: timestamp });
+            
+            if (type === 'function_call') {
+                const toolName = data.name || data.tool_name;
+                const toolArgs = JSON.parse(data.arguments || '{}');
+                addMessage(
+                    `🔧 ${toolName}<pre>${JSON.stringify(toolArgs, null, 2)}</pre>`,
+                    'tool',
+                    true,
+                    timestamp
+                );
+            } else if (type === 'function_call_output') {
+                addMessage(
+                    `✅ Result<pre>${data.output?.substring(0, 500) || 'OK'}</pre>`,
+                    'result',
+                    true,
+                    timestamp
+                );
+            } else if (type === 'messages') {
+                // Parse new_messages array
+                if (data.new_messages && Array.isArray(data.new_messages)) {
+                    data.new_messages.forEach(msg => {
+                        if (msg.type === 'function_call') {
+                            addMessage(
+                                `🔧 ${msg.name}<pre>${msg.arguments}</pre>`,
+                                'tool',
+                                true,
+                                timestamp
+                            );
+                        } else if (msg.type === 'function_call_output') {
+                            addMessage(
+                                `✅ Result<pre>${msg.output?.substring(0, 500)}</pre>`,
+                                'result',
+                                true,
+                                timestamp
+                            );
+                        } else if (msg.type === 'message' && msg.role === 'assistant') {
+                            const text = Array.isArray(msg.content) 
+                                ? msg.content.map(c => c.text).join('') 
+                                : msg.content;
+                            addMessage(`💬 ${text}`, 'message', false, timestamp);
+                        }
+                    });
+                }
+                
+                // Display file_ids_map if present
+                if (data.file_ids_map && Object.keys(data.file_ids_map).length > 0) {
+                    addMessage(
+                        `📎 Uploaded files<pre>${JSON.stringify(data.file_ids_map, null, 2)}</pre>`,
+                        'info',
+                        true,
+                        timestamp
+                    );
+                }
+            } else if (type === 'end' || type === '' || !type) {
+                // Skip internal events
+                return;
+            } else {
+                console.log(`Unknown event [${timestamp}s]:`, type, data);
+            }
+        }
+        
+        function addMessage(content, className = 'info', isHtml = false, timestamp = null) {
+            const div = document.createElement('div');
+            div.className = `event ${className}`;
+            
+            if (timestamp) {
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'event-time';
+                timeSpan.textContent = `[${timestamp}s] `;
+                div.appendChild(timeSpan);
+            }
+            
+            if (isHtml) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = content;
+                div.appendChild(tempDiv);
+            } else {
+                const textNode = document.createTextNode(content);
+                div.appendChild(textNode);
+            }
+            
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function clearMessages() {
+            const messageCount = messagesDiv.childElementCount;
+            messagesDiv.innerHTML = '';
+            log('info', 'UI', `Cleared ${messageCount} messages from display`);
+        }
+    </script>
+</body>
+</html>
