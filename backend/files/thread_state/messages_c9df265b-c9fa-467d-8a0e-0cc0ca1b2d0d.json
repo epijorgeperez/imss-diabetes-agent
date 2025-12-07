@@ -1,0 +1,77 @@
+[
+  {
+    "content": "cuantos casos nuevos de diabetes en 2023 en la umf 168 ese es el nombre de la unidad",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_f5d53a2ec0b74b59bced3af024020c91",
+    "run_trace_id": "trace_f4d1c998681946098bb6ecc08229414f",
+    "timestamp": 1765133253268174,
+    "type": "message"
+  },
+  {
+    "arguments": "{\"sql_query\":\"SELECT TOP 20 Nombre_Unidad FROM MORBI_DIABETES WHERE Anio = 2023 GROUP BY Nombre_Unidad ORDER BY Nombre_Unidad\"}",
+    "call_id": "call_RU8t45jegLAd55Rlxoyk5mz6",
+    "name": "QueryDatabase",
+    "type": "function_call",
+    "id": "fc_0ab3d38546150323006935cbc7b4e08195bcc0f91bebede2f0",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_30cbb109e70d49828e185c4439cfc5ca",
+    "run_trace_id": "trace_f4d1c998681946098bb6ecc08229414f",
+    "timestamp": 1765133271190197
+  },
+  {
+    "call_id": "call_RU8t45jegLAd55Rlxoyk5mz6",
+    "output": "[OK] Query executed successfully (20 filas).\n\n| Nombre_Unidad |\n| --- |\n|  |\n| HGSMF 15 |\n| HGSMF 27 |\n| HGSMF 28 |\n| HGZMF 20 |\n| HGZMF 26 |\n| HGZMF 42 |\n| HGZMF 6 |\n| HGZMF 9 |\n| UMF 1 |\n| UMF 100 |\n| UMF 106 |\n| UMF 11 |\n| UMF 114 |\n| UMF 12 |\n| UMF 128 |\n| UMF 130 |\n| UMF 132 |\n| UMF 133 |\n| UMF 137 |",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_30cbb109e70d49828e185c4439cfc5ca",
+    "run_trace_id": "trace_f4d1c998681946098bb6ecc08229414f",
+    "timestamp": 1765133271190204
+  },
+  {
+    "arguments": "{\"sql_query\":\"SELECT Nombre_Unidad, SUM(Dato) AS casos_nuevos\\nFROM MORBI_DIABETES\\nWHERE Anio = 2023\\n  AND Sexo = 0\\n  AND Grupo_edad = 'TTotal'\\n  AND Nombre_Unidad LIKE 'UMF 168%'\\nGROUP BY Nombre_Unidad\\nORDER BY Nombre_Unidad\"}",
+    "call_id": "call_UkHN7gN6OHf2t2Ye20OrS7LW",
+    "name": "QueryDatabase",
+    "type": "function_call",
+    "id": "fc_0ab3d38546150323006935cbd3f3d48195bdaeaa276b147ad7",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_30cbb109e70d49828e185c4439cfc5ca",
+    "run_trace_id": "trace_f4d1c998681946098bb6ecc08229414f",
+    "timestamp": 1765133271190207
+  },
+  {
+    "call_id": "call_UkHN7gN6OHf2t2Ye20OrS7LW",
+    "output": "[OK] Query executed successfully (1 filas).\n\n| Nombre_Unidad | casos_nuevos |\n| --- | --- |\n| UMF 168 | 202 |",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_30cbb109e70d49828e185c4439cfc5ca",
+    "run_trace_id": "trace_f4d1c998681946098bb6ecc08229414f",
+    "timestamp": 1765133271190211
+  },
+  {
+    "id": "msg_0ab3d38546150323006935cbd5c9f08195aef73d6acf1efddc",
+    "content": [
+      {
+        "annotations": [],
+        "text": "En 2023, la **UMF 168** registr\u00f3 **202 casos nuevos de diabetes** (incidencia), considerando **ambos sexos y todas las edades**.",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_30cbb109e70d49828e185c4439cfc5ca",
+    "run_trace_id": "trace_f4d1c998681946098bb6ecc08229414f",
+    "timestamp": 1765133271190215
+  }
+]

@@ -1,0 +1,31 @@
+[
+  {
+    "content": "soy jorge",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_ca826499e51040168a13a7c6095346ae",
+    "run_trace_id": "trace_ed2ccf41885e462eb9bd0cb71c41c0a3",
+    "timestamp": 1765132679055971,
+    "type": "message"
+  },
+  {
+    "id": "msg_08c54d714dea7392006935c98827cc8195b33cb28b7fa17cef",
+    "content": [
+      {
+        "annotations": [],
+        "text": "Hola Jorge, mucho gusto.\n\nPuedo ayudarte a analizar indicadores de diabetes del IMSS (incidencia, prevalencia, mortalidad, consultas, hospitalizaciones, incapacidades) por a\u00f1o, delegaci\u00f3n, unidad m\u00e9dica, sexo y grupo de edad.\n\nDime qu\u00e9 necesitas:\n- \u00bfQu\u00e9 indicador? (incidencia, prevalencia, mortalidad, etc.)\n- \u00bfQu\u00e9 a\u00f1o(s)?\n- \u00bfQu\u00e9 \u00e1mbito? (nacional, una OOAD espec\u00edfica, una unidad)\n- \u00bfAlg\u00fan grupo de edad o sexo en particular?",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_633f8e3f902c43ea8480751545a03ef4",
+    "run_trace_id": "trace_ed2ccf41885e462eb9bd0cb71c41c0a3",
+    "timestamp": 1765132681871406
+  }
+]

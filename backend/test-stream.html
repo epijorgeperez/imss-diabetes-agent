@@ -736,7 +736,7 @@
         }
         
         async function sendStreamingQuery(payload, startTime, requestId) {
-            const url = 'http://localhost:8080/imss-diabetes/get_response_stream';
+            const url = 'http://11.124.14.201:8001/imss-diabetes/get_response_stream';
             log('debug', 'STREAMING', `Initiating SSE connection`, { url, request_id: requestId });
             
             const response = await fetch(url, {
@@ -813,7 +813,7 @@
         }
         
         async function sendSyncQuery(payload, startTime, requestId) {
-            const url = 'http://localhost:8080/imss-diabetes/get_response';
+            const url = 'http://11.124.14.201:8001/imss-diabetes/get_response';
             log('debug', 'SYNC', `Sending synchronous request`, { url, request_id: requestId });
             
             const response = await fetch(url, {

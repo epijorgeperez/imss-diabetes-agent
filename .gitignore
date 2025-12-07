@@ -89,3 +89,4 @@ service-account.json
 /backend/shiny-example-etl-docs/*
 /backend/.agency_swarm_chats/
 /backend/docs/
+update.sh

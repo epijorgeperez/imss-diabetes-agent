@@ -1,0 +1,12 @@
+[
+  {
+    "content": "hola soy Jorge",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_267c93531fbb42e084d1804e8a7aa289",
+    "run_trace_id": "trace_a74c262e45bf4e018f2b970c6b6b4462",
+    "timestamp": 1765128973935944,
+    "type": "message"
+  }
+]

@@ -1,0 +1,31 @@
+[
+  {
+    "content": "hola",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_5581d299d3df4fd4b7a1319694b22d50",
+    "run_trace_id": "trace_5eee48d551674388a2cdefd6eef51210",
+    "timestamp": 1765132622248019,
+    "type": "message"
+  },
+  {
+    "id": "msg_04f59765062402d0006935c951268081a28127be737370f9ce",
+    "content": [
+      {
+        "annotations": [],
+        "text": "Hola, \u00bfen qu\u00e9 te puedo ayudar? Puedo apoyarte con indicadores de diabetes (incidencia, prevalencia, mortalidad, consultas, hospitalizaciones) por a\u00f1o, delegaci\u00f3n, unidad m\u00e9dica, grupo de edad o sexo.",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_a7a814110c5c4337a349dc2f4966d823",
+    "run_trace_id": "trace_5eee48d551674388a2cdefd6eef51210",
+    "timestamp": 1765132626095353
+  }
+]

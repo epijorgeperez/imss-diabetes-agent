@@ -99,7 +99,7 @@ except Exception as e:
 # --- 4. CREACIÓN DE LA APP (GLOBAL) ---
 # Esto ahora se ejecuta SIEMPRE al importar el archivo, solucionando el error de Systemd.
 
-port = int(os.getenv("PORT", 8080))
+port = int(os.getenv("PORT", 8001))
 frontend_origin = os.getenv("FRONTEND_ORIGIN", "*")
 app_token_env = os.getenv("APP_TOKEN")
 

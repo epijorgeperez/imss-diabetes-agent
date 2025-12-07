@@ -1,0 +1,22 @@
+[
+  {
+    "content": "hola soy jorge",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_907c38998ec84ccfacb05ab8b06a5d9e",
+    "run_trace_id": "trace_96aaf09555ff4c618b7db5205cef23dc",
+    "timestamp": 1765129644661523,
+    "type": "message"
+  },
+  {
+    "content": "hola soy jorge que tal",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_a354c88527f4483a9da161a7f592c4aa",
+    "run_trace_id": "trace_96aaf09555ff4c618b7db5205cef23dc",
+    "timestamp": 1765129658174723,
+    "type": "message"
+  }
+]
