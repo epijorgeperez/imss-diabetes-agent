@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { generateId } from '@/lib/utils'
 
 export function useChatId() {
   const [chatId, setChatId] = useState<string | null>(null)
@@ -11,7 +12,7 @@ export function useChatId() {
     if (saved) {
       setChatId(saved)
     } else {
-      const newId = crypto.randomUUID()
+      const newId = generateId()
       setChatId(newId)
       localStorage.setItem('imss_diabetes_chat_id', newId)
     }
@@ -19,7 +20,7 @@ export function useChatId() {
   }, [])
 
   const resetChat = useCallback(() => {
-    const newId = crypto.randomUUID()
+    const newId = generateId()
     setChatId(newId)
     localStorage.setItem('imss_diabetes_chat_id', newId)
   }, [])

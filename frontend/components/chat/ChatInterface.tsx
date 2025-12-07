@@ -8,6 +8,7 @@ import { Sidebar } from './Sidebar'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useToast } from '@/components/ui/use-toast'
+import { generateId } from '@/lib/utils'
 import type { Message } from '@/types/chat'
 
 export function ChatInterface() {
@@ -66,7 +67,7 @@ export function ChatInterface() {
           } else {
             // No assistant message yet, create one
             const assistantMessage: Message = {
-              id: crypto.randomUUID(),
+              id: generateId(),
               role: 'assistant',
               content: fullMessage,
               timestamp: Date.now(),
@@ -78,7 +79,7 @@ export function ChatInterface() {
         } else {
           // No messages at all, create assistant message
           const assistantMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'assistant',
             content: fullMessage,
             timestamp: Date.now(),
@@ -116,7 +117,7 @@ export function ChatInterface() {
           } else {
             // Create new assistant message if user message exists but no assistant yet
             const assistantMessage: Message = {
-              id: crypto.randomUUID(),
+              id: generateId(),
               role: 'assistant',
               content: fullMessage,
               timestamp: Date.now(),
@@ -126,7 +127,7 @@ export function ChatInterface() {
         } else {
           // No messages yet, create assistant message
           const assistantMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'assistant',
             content: fullMessage,
             timestamp: Date.now(),
@@ -164,7 +165,7 @@ export function ChatInterface() {
 
       // Add user message
       const userMessage: Message = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: 'user',
         content,
         timestamp: Date.now(),
@@ -186,7 +187,7 @@ export function ChatInterface() {
         // Update with error message
         setMessages((prev) => {
           const errorMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'assistant',
             content: `Error: ${err instanceof Error ? err.message : 'Error desconocido'}`,
             timestamp: Date.now(),
