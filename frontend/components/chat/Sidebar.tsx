@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, MessageSquare, Plus, Trash2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Menu, MessageSquare, Plus, Trash2, Pencil, Check, X, MoreVertical } from 'lucide-react'
 import { useChatHistory } from '@/hooks/useChatHistory'
 import { useChatId } from '@/hooks/useChatId'
 import type { ChatSession } from '@/types/chat'
@@ -18,7 +25,7 @@ interface SidebarProps {
 
 export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
   const { chatId, resetChat } = useChatId()
-  const { allSessions, deleteSession } = useChatHistory(chatId)
+  const { allSessions, deleteSession, updateSessionTitle } = useChatHistory(chatId)
   const [isOpen, setIsOpen] = useState(false)
 
   const handleNewChat = () => {
@@ -37,7 +44,15 @@ export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
     e.stopPropagation()
     if (confirm('¿Eliminar esta conversación?')) {
       deleteSession(sessionChatId)
+      // If deleting current chat, reload to create new one
+      if (sessionChatId === currentChatId) {
+        window.location.reload()
+      }
     }
+  }
+
+  const handleRenameChat = (sessionChatId: string, newTitle: string) => {
+    updateSessionTitle(sessionChatId, newTitle)
   }
 
   const formatDate = (timestamp: number) => {
@@ -59,7 +74,10 @@ export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
     })
   }
 
-  const getPreview = (session: ChatSession) => {
+  const getTitle = (session: ChatSession) => {
+    if (session.title) {
+      return session.title
+    }
     if (session.firstMessage) {
       return session.firstMessage.length > 50
         ? session.firstMessage.substring(0, 50) + '...'
@@ -83,22 +101,24 @@ export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
             onSelectChat={handleSelectChat}
             onNewChat={handleNewChat}
             onDeleteChat={handleDeleteChat}
+            onRenameChat={handleRenameChat}
             formatDate={formatDate}
-            getPreview={getPreview}
+            getTitle={getTitle}
           />
         </SheetContent>
       </Sheet>
 
       {/* Desktop sidebar */}
-      <div className="hidden w-80 border-r bg-muted/30 lg:block">
+      <div className="w-80 border-r bg-muted/30">
         <SidebarContent
           allSessions={allSessions}
           currentChatId={currentChatId}
           onSelectChat={handleSelectChat}
           onNewChat={handleNewChat}
           onDeleteChat={handleDeleteChat}
+          onRenameChat={handleRenameChat}
           formatDate={formatDate}
-          getPreview={getPreview}
+          getTitle={getTitle}
         />
       </div>
     </>
@@ -111,8 +131,9 @@ interface SidebarContentProps {
   onSelectChat: (chatId: string) => void
   onNewChat: () => void
   onDeleteChat: (e: React.MouseEvent, chatId: string) => void
+  onRenameChat: (chatId: string, newTitle: string) => void
   formatDate: (timestamp: number) => string
-  getPreview: (session: ChatSession) => string
+  getTitle: (session: ChatSession) => string
 }
 
 function SidebarContent({
@@ -121,11 +142,36 @@ function SidebarContent({
   onSelectChat,
   onNewChat,
   onDeleteChat,
+  onRenameChat,
   formatDate,
-  getPreview,
+  getTitle,
 }: SidebarContentProps) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+
+  const handleStartEdit = (e: React.MouseEvent, session: ChatSession) => {
+    e.stopPropagation()
+    setEditingId(session.chatId)
+    setEditTitle(getTitle(session))
+  }
+
+  const handleSaveEdit = (e: React.MouseEvent, sessionChatId: string) => {
+    e.stopPropagation()
+    if (editTitle.trim()) {
+      onRenameChat(sessionChatId, editTitle.trim())
+    }
+    setEditingId(null)
+    setEditTitle('')
+  }
+
+  const handleCancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingId(null)
+    setEditTitle('')
+  }
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b p-4">
         <div className="mb-4 flex items-center gap-2">
@@ -156,38 +202,104 @@ function SidebarContent({
           ) : (
             <div className="space-y-1">
               {allSessions.map((session) => (
-                <button
+                <div
                   key={session.chatId}
-                  onClick={() => onSelectChat(session.chatId)}
+                  onClick={() => editingId !== session.chatId && onSelectChat(session.chatId)}
                   className={cn(
-                    'group relative w-full rounded-lg p-3 text-left transition-colors hover:bg-accent',
-                    currentChatId === session.chatId && 'bg-accent'
+                    'group relative w-full rounded-lg p-3 text-left transition-colors cursor-pointer',
+                    currentChatId === session.chatId && 'bg-accent',
+                    editingId !== session.chatId && 'hover:bg-accent'
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {session.firstMessage?.[0]?.toUpperCase() || 'N'}
+                        {(session.title || session.firstMessage)?.[0]?.toUpperCase() || 'N'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {getPreview(session)}
-                      </p>
+                      {editingId === session.chatId ? (
+                        <Input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveEdit(e as any, session.chatId)
+                            } else if (e.key === 'Escape') {
+                              handleCancelEdit(e as any)
+                            }
+                          }}
+                          className="h-7 text-sm"
+                          autoFocus
+                        />
+                      ) : (
+                        <p className="truncate text-sm font-medium">
+                          {getTitle(session)}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {formatDate(session.updatedAt)}
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={(e) => onDeleteChat(e, session.chatId)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    <div className="flex items-center gap-0.5 flex-shrink-0 ml-auto">
+                      {editingId === session.chatId ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => handleSaveEdit(e, session.chatId)}
+                          >
+                            <Check className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={handleCancelEdit}
+                          >
+                            <X className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleStartEdit(e as any, session)
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar nombre
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteChat(e as any, session.chatId)
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}

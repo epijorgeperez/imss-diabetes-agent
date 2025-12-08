@@ -1,0 +1,54 @@
+[
+  {
+    "content": "me puedes decir cual es el promedio de dias de estancia hospitalaria de diabetse en mayo del 2023 en la umf 168",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_220a2fedf11b4ceeafca92b3645f586d",
+    "run_trace_id": "trace_5317bff547b54d36810ad400f7b4a273",
+    "timestamp": 1765223961635022,
+    "type": "message"
+  },
+  {
+    "arguments": "{\"table_name\":\"tb_egreso_dm\"}",
+    "call_id": "call_BVl6Xzo2vjQcZ9l2JNfRF3ak",
+    "name": "GetDatabaseSchema",
+    "type": "function_call",
+    "id": "fc_0c140f369f2528be0069372e1b4ab881a2bad4fa47992e5a78",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_db9b9b55bd36464382a7fe9f52394683",
+    "run_trace_id": "trace_5317bff547b54d36810ad400f7b4a273",
+    "timestamp": 1765224037456352
+  },
+  {
+    "call_id": "call_BVl6Xzo2vjQcZ9l2JNfRF3ak",
+    "output": "[ERROR] Database error [08001]: [08001] [Microsoft][ODBC Driver 17 for SQL Server]Named Pipes Provider: Could not open a connection to SQL Server [53].  (53) (SQLDriverConnect); [08001] [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (0); [08001] [Microsoft][ODBC Driver 17 for SQL Server]Invalid connection string attribute (0); [08001] [Microsoft][ODBC Driver 17 for SQL Server]A network-related or instance-specific error has occurred while establishing a connection to SQL Server. Server is not found or not accessible. Check if instance name is correct and if SQL Server is configured to allow remote connections. For more information see SQL Server Books Online. (53)",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_db9b9b55bd36464382a7fe9f52394683",
+    "run_trace_id": "trace_5317bff547b54d36810ad400f7b4a273",
+    "timestamp": 1765224037456360
+  },
+  {
+    "id": "msg_0c140f369f2528be0069372e58f7c881a2828321a90163ea8d",
+    "content": [
+      {
+        "annotations": [],
+        "text": "En este momento no tengo conexi\u00f3n operativa con la base de datos SQL Server del IMSS (el intento de conexi\u00f3n devolvi\u00f3 un error de red/timeout), por lo que no puedo ejecutar la consulta real para darte el dato num\u00e9rico exacto.\n\nSin embargo, te explico c\u00f3mo se obtiene el indicador que pides, para que puedas reproducirlo con el \u00e1rea de inform\u00e1tica/estad\u00edstica de tu OOAD:\n\n**Objetivo:**  \nPromedio de d\u00edas de estancia hospitalaria por egresos de diabetes en **mayo de 2023** en la **UMF 168**.\n\n### 1. Tabla a utilizar\nSe usa la tabla: `tb_egreso_dm` (egresos hospitalarios por diabetes).\n\nColumnas clave (seg\u00fan el diccionario de datos):\n- `Parametro`:  \n  - `'Egresos_DM_Adsc'` = n\u00famero de egresos  \n  - `'DiasEstancia_DM_Adsc'` = d\u00edas de estancia acumulados\n- `Anio`, `Mes`\n- `Cve_Presupuestal` y/o `Nombre_Unidad` (para identificar la UMF 168)\n- `Especialidad` (usar `'Total'` para todos los servicios)\n- `Sexo`, `Grupo_edad` (usar totales para no desagregar)\n\n### 2. L\u00f3gica epidemiol\u00f3gica\nEl **promedio de d\u00edas de estancia** se calcula como:\n\n\\[\n\\text{Promedio de d\u00edas de estancia} = \\frac{\\text{D\u00edas de estancia por DM}}{\\text{N\u00famero de egresos por DM}}\n\\]\n\nPara un mes y unidad espec\u00edficos:\n\n- Numerador: suma de `Dato` donde `Parametro = 'DiasEstancia_DM_Adsc'`\n- Denominador: suma de `Dato` donde `Parametro = 'Egresos_DM_Adsc'`\n\n### 3. Ejemplo de consulta SQL que deben ejecutar\n\nSi en tu sistema la UMF 168 se identifica por nombre:\n\n```sql\n-- Egresos (denominador)\nWITH egresos AS (\n    SELECT \n        SUM(Dato) AS total_egresos\n    FROM tb_egreso_dm\n    WHERE Anio = 2023\n      AND Mes = 5\n      AND Parametro = 'Egresos_DM_Adsc'\n      AND Nombre_Unidad LIKE '%UMF 168%'   -- ajustar al nombre exacto en el sistema\n      AND Especialidad = 'Total'\n      AND Sexo = 0\n      AND Grupo_edad = 'Total'\n),\n-- D\u00edas de estancia (numerador)\ndias AS (\n    SELECT \n        SUM(Dato) AS total_dias\n    FROM tb_egreso_dm\n    WHERE Anio = 2023\n      AND Mes = 5\n      AND Parametro = 'DiasEstancia_DM_Adsc'\n      AND Nombre_Unidad LIKE '%UMF 168%'   -- mismo filtro de unidad\n      AND Especialidad = 'Total'\n      AND Sexo = 0\n      AND Grupo_edad = 'Total'\n)\nSELECT \n    dias.total_dias,\n    egresos.total_egresos,\n    CASE \n        WHEN egresos.total_egresos > 0 \n        THEN CAST(dias.total_dias AS FLOAT) / egresos.total_egresos\n        ELSE NULL\n    END AS promedio_dias_estancia\nFROM dias, egresos;\n```\n\nSi en tu OOAD usan el **c\u00f3digo presupuestal** de la UMF 168 (recomendado), sustituye la condici\u00f3n de nombre por algo como:\n\n```sql\nAND Cve_Presupuestal = 'XXX168'  -- el c\u00f3digo real de la UMF 168 en tu delegaci\u00f3n\n```\n\n### 4. Qu\u00e9 resultado esperar\nEl resultado final tendr\u00e1 tres columnas:\n\n- `total_dias`: d\u00edas totales de estancia por DM en mayo 2023 en UMF 168  \n- `total_egresos`: egresos hospitalarios por DM en ese periodo y unidad  \n- `promedio_dias_estancia`: el valor que t\u00fa necesitas (en d\u00edas por egreso)\n\n---\n\nSi me puedes proporcionar:\n- El c\u00f3digo presupuestal exacto de la UMF 168 en tu delegaci\u00f3n, o\n- C\u00f3mo aparece el nombre de la unidad en sus reportes (ej. \u201cUMF 168 Guadalajara\u201d),\n\npuedo afinar a\u00fan m\u00e1s el filtro y dejarte la consulta lista para que solo la peguen en su SQL Server. Cuando la conexi\u00f3n a la base est\u00e9 disponible, tambi\u00e9n podr\u00e9 correrla directamente y darte el n\u00famero exacto.",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_db9b9b55bd36464382a7fe9f52394683",
+    "run_trace_id": "trace_5317bff547b54d36810ad400f7b4a273",
+    "timestamp": 1765224037456368
+  }
+]

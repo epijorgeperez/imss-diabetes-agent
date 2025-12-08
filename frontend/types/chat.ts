@@ -23,6 +23,7 @@ export interface ChatSession {
   chatId: string
   createdAt: number
   firstMessage: string
+  title?: string
   messages: Message[]
   updatedAt: number
 }

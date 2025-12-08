@@ -150,10 +150,10 @@ export function useAgencyStream() {
       case 'tool':
       case 'function_call':
         // Tool call started
-        const toolName = data.name || data.tool_name || 'Unknown Tool'
+        const toolName = data.name || data.tool_name || data.function_name || 'Unknown Tool'
         const toolArgs = typeof data.arguments === 'string' 
           ? JSON.parse(data.arguments) 
-          : (data.arguments || data.tool_input || {})
+          : (data.arguments || data.tool_input || data.input || {})
         
         setState((prev) => ({
           ...prev,
@@ -171,21 +171,36 @@ export function useAgencyStream() {
 
       case 'function_call_output':
         // Tool result received
-        const resultName = data.name || data.tool_name || 'Unknown Tool'
-        const resultOutput = data.output || ''
+        // Try to find the tool name from various possible fields
+        const resultOutput = data.output || data.result || data.tool_output || ''
         
-        setState((prev) => ({
-          ...prev,
-          toolResults: [
-            ...prev.toolResults,
-            {
-              name: resultName,
-              output: resultOutput,
-              timestamp: Date.now(),
-            },
-          ],
-          currentTool: null,
-        }))
+        setState((prev) => {
+          // Try to find the tool name from various possible fields
+          let resultName = data.name || data.tool_name || data.function_name
+          
+          // If no name in result, try to match with the most recent tool call without a result
+          if (!resultName) {
+            const lastToolCall = prev.toolCalls[prev.toolCalls.length - 1]
+            if (lastToolCall && !prev.toolResults.some(r => r.name === lastToolCall.name)) {
+              resultName = lastToolCall.name
+            } else {
+              resultName = 'Unknown Tool'
+            }
+          }
+          
+          return {
+            ...prev,
+            toolResults: [
+              ...prev.toolResults,
+              {
+                name: resultName,
+                output: resultOutput,
+                timestamp: Date.now(),
+              },
+            ],
+            currentTool: null,
+          }
+        })
         break
 
       case 'message':
@@ -223,9 +238,22 @@ export function useAgencyStream() {
                 timestamp: Date.now(),
               })
             } else if (msg.type === 'function_call_output') {
+              // Try to match with the corresponding tool call
+              const resultToolName = msg.name || msg.tool_name || msg.function_name ||
+                (() => {
+                  // Find the most recent tool call without a matching result
+                  const lastToolCall = newToolCalls[newToolCalls.length - 1]
+                  if (lastToolCall) return lastToolCall.name
+                  // Or check previous state
+                  const prevToolCall = state.toolCalls[state.toolCalls.length - 1]
+                  if (prevToolCall && !state.toolResults.some(r => r.name === prevToolCall.name)) {
+                    return prevToolCall.name
+                  }
+                  return 'Unknown Tool'
+                })()
               newToolResults.push({
-                name: msg.name || 'Unknown Tool',
-                output: msg.output || '',
+                name: resultToolName,
+                output: msg.output || msg.result || msg.tool_output || '',
                 timestamp: Date.now(),
               })
             } else if (msg.type === 'message' && msg.role === 'assistant') {

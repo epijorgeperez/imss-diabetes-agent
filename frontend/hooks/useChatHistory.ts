@@ -15,7 +15,14 @@ export function useChatHistory(chatId: string | null) {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const sessions = JSON.parse(stored) as ChatSession[]
-        setAllSessions(sessions.sort((a, b) => b.updatedAt - a.updatedAt))
+        // Remove duplicates by chatId
+        const uniqueSessions = sessions.reduce((acc, session) => {
+          if (!acc.find(s => s.chatId === session.chatId)) {
+            acc.push(session)
+          }
+          return acc
+        }, [] as ChatSession[])
+        setAllSessions(uniqueSessions.sort((a, b) => b.updatedAt - a.updatedAt))
       }
     } catch (error) {
       console.error('Failed to load chat sessions:', error)
@@ -158,6 +165,36 @@ export function useChatHistory(chatId: string | null) {
     [chatId, loadSessions]
   )
 
+  // Update session title
+  const updateSessionTitle = useCallback(
+    (targetChatId: string, newTitle: string) => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY)
+        if (stored) {
+          const sessions = JSON.parse(stored) as ChatSession[]
+          const sessionIndex = sessions.findIndex((s) => s.chatId === targetChatId)
+          if (sessionIndex >= 0) {
+            sessions[sessionIndex] = {
+              ...sessions[sessionIndex],
+              title: newTitle,
+              updatedAt: Date.now(),
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+            loadSessions()
+
+            // If updating current session, update it
+            if (targetChatId === chatId) {
+              setCurrentSession(sessions[sessionIndex])
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update session title:', error)
+      }
+    },
+    [chatId, loadSessions]
+  )
+
   return {
     currentSession,
     allSessions,
@@ -165,6 +202,7 @@ export function useChatHistory(chatId: string | null) {
     addMessage,
     loadSession,
     deleteSession,
+    updateSessionTitle,
     refreshSessions: loadSessions,
   }
 }
