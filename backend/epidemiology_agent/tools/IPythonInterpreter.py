@@ -41,6 +41,9 @@ class IPythonInterpreter(BaseTool):
         # Step 1: Ensure output directory exists
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         
+        # Step 1.5: Detect existing files before execution
+        existing_files = set(os.listdir(OUTPUT_DIR)) if os.path.exists(OUTPUT_DIR) else set()
+        
         # Step 2: Get or create isolated namespace per session
         namespace = self.context.get("python_namespace")
         if namespace is None:
@@ -115,14 +118,32 @@ class IPythonInterpreter(BaseTool):
         
         stdout = output.getvalue().strip()
         
+        # Step 6: Build response with file detection
+        response_parts = []
+        
         if error:
             return f"[ERROR]\n{error}"
-        elif stdout:
-            return f"[OK] Output:\n{stdout}"
+        
+        if stdout:
+            response_parts.append(f"[OK] Output:\n{stdout}")
         elif result_value is not None:
-            return f"[OK] Result: {repr(result_value)}"
+            response_parts.append(f"[OK] Result: {repr(result_value)}")
         else:
-            return "[OK] Ejecutado correctamente (sin output)."
+            response_parts.append("[OK] Ejecutado correctamente.")
+        
+        # Step 7: Detect new files and generate markdown links
+        current_files = set(os.listdir(OUTPUT_DIR)) if os.path.exists(OUTPUT_DIR) else set()
+        new_files = current_files - existing_files
+        
+        if new_files:
+            response_parts.append("\n\n**ARCHIVOS GENERADOS** (Incluye estos links en tu respuesta final):")
+            for f in sorted(new_files):
+                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    response_parts.append(f"![Gráfico generado](/files/outputs/{f})")
+                else:
+                    response_parts.append(f"[Descargar {f}](/files/outputs/{f})")
+        
+        return "\n".join(response_parts)
 
 
 if __name__ == "__main__":
