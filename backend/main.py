@@ -22,6 +22,7 @@ import os
 from dotenv import load_dotenv
 import threading
 import inspect
+from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
@@ -128,6 +129,12 @@ app = run_fastapi(**fastapi_kwargs)
 if ChatIdCaptureMiddleware:
     app.add_middleware(ChatIdCaptureMiddleware)
     logger.info("PERSISTENCE: ✅ ChatIdCaptureMiddleware installed")
+
+# --- STATIC FILES: Serve generated files (graphs, reports) ---
+files_path = os.path.join(os.path.dirname(__file__), "epidemiology_agent", "files")
+os.makedirs(os.path.join(files_path, "outputs"), exist_ok=True)
+app.mount("/files", StaticFiles(directory=files_path), name="files")
+logger.info(f"STATIC FILES: ✅ Serving files from {files_path}")
 
 # --- 5. EJECUCIÓN MANUAL (SOLO PARA DEBUG) ---
 if __name__ == "__main__":

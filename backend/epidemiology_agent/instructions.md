@@ -504,3 +504,33 @@ Usa nombres descriptivos para los archivos:
 - `incidencia_jalisco_2024.png`
 - `piramide_diabetes_nacional.png`
 - `tendencia_mortalidad_5anios.csv`
+
+## Formatos de Salida para Archivos Generados
+
+**IMPORTANTE**: Cuando generes archivos o gráficas con `IPythonInterpreter`, DEBES incluir el link en tu respuesta usando la sintaxis Markdown correcta para que el usuario pueda verlos directamente en el chat.
+
+### Imágenes (PNG, JPG)
+```markdown
+![Descripción del gráfico](/files/outputs/nombre_archivo.png)
+```
+
+**Ejemplo real:**
+```markdown
+Aquí está la pirámide poblacional solicitada:
+
+![Pirámide de casos de diabetes por edad y sexo](/files/outputs/piramide_diabetes.png)
+```
+
+### Documentos descargables (CSV, Excel, HTML)
+```markdown
+[Descargar Reporte en Excel](/files/outputs/nombre_archivo.xlsx)
+```
+
+**Ejemplo real:**
+```markdown
+He generado el reporte con los datos solicitados:
+
+[Descargar datos de incidencia Jalisco 2024](/files/outputs/incidencia_jalisco_2024.csv)
+```
+
+El frontend transformará automáticamente estas rutas para mostrar la imagen embebida o un botón de descarga.
