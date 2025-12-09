@@ -234,9 +234,22 @@ function ToolCallItem({ tool, isExecuting = false }: { tool: ToolCall; isExecuti
   )
 }
 
-function ToolResultItem({ result }: { result: { name: string; output: string } }) {
+function ToolResultItem({ result }: { result: { name: string; output: unknown } }) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const hasOutput = result.output && result.output.trim().length > 0
+  
+  // Safely convert output to string
+  const outputString = (() => {
+    if (typeof result.output === 'string') return result.output
+    if (typeof result.output === 'object' && result.output !== null) {
+      return JSON.stringify(result.output, null, 2)
+    }
+    if (result.output !== undefined && result.output !== null) {
+      return String(result.output)
+    }
+    return ''
+  })()
+  
+  const hasOutput = outputString.trim().length > 0
 
   // Detect if output is SQL, JSON, or plain text
   const detectLanguage = (text: string): string => {
@@ -255,7 +268,7 @@ function ToolResultItem({ result }: { result: { name: string; output: string } }
     return 'text'
   }
 
-  const language = hasOutput ? detectLanguage(result.output) : 'text'
+  const language = hasOutput ? detectLanguage(outputString) : 'text'
 
   return (
     <div className="rounded-lg border bg-muted/30 overflow-hidden">
@@ -289,12 +302,12 @@ function ToolResultItem({ result }: { result: { name: string; output: string } }
                 }}
                 wrapLongLines={true}
               >
-                {result.output}
+                {outputString}
               </SyntaxHighlighter>
             </div>
           ) : (
             <div className="rounded bg-muted/50 p-3 text-xs font-mono whitespace-pre-wrap break-words overflow-auto max-h-96">
-              {result.output}
+              {outputString}
             </div>
           )}
         </div>

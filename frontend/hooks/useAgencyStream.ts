@@ -172,7 +172,15 @@ export function useAgencyStream() {
       case 'function_call_output':
         // Tool result received
         // Try to find the tool name from various possible fields
-        const resultOutput = data.output || data.result || data.tool_output || ''
+        const rawOutput = data.output ?? data.result ?? data.tool_output
+        let resultOutput = ''
+        if (typeof rawOutput === 'string') {
+          resultOutput = rawOutput
+        } else if (typeof rawOutput === 'object' && rawOutput !== null) {
+          resultOutput = JSON.stringify(rawOutput, null, 2)
+        } else if (rawOutput !== undefined && rawOutput !== null) {
+          resultOutput = String(rawOutput)
+        }
         
         setState((prev) => {
           // Try to find the tool name from various possible fields
@@ -251,9 +259,18 @@ export function useAgencyStream() {
                   }
                   return 'Unknown Tool'
                 })()
+              const rawMsgOutput = msg.output ?? msg.result ?? msg.tool_output
+              let msgOutput = ''
+              if (typeof rawMsgOutput === 'string') {
+                msgOutput = rawMsgOutput
+              } else if (typeof rawMsgOutput === 'object' && rawMsgOutput !== null) {
+                msgOutput = JSON.stringify(rawMsgOutput, null, 2)
+              } else if (rawMsgOutput !== undefined && rawMsgOutput !== null) {
+                msgOutput = String(rawMsgOutput)
+              }
               newToolResults.push({
                 name: resultToolName,
-                output: msg.output || msg.result || msg.tool_output || '',
+                output: msgOutput,
                 timestamp: Date.now(),
               })
             } else if (msg.type === 'message' && msg.role === 'assistant') {

@@ -1,0 +1,31 @@
+[
+  {
+    "content": "hola",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_246d3c1d95314655ad893c1cd6a318e1",
+    "run_trace_id": "trace_0dba3ba3123e40339bd7aeea61e591da",
+    "timestamp": 1765299512321685,
+    "type": "message"
+  },
+  {
+    "id": "msg_0181a0d1f36196bc006938553a8b58819e878e9e37cfccead7",
+    "content": [
+      {
+        "annotations": [],
+        "text": "Hola, \u00bfen qu\u00e9 indicador o an\u00e1lisis de diabetes del IMSS te gustar\u00eda que trabajemos?  \nPor ejemplo, puedo ayudarte con:\n\n- Incidencia (casos nuevos) por a\u00f1o, delegaci\u00f3n, edad o sexo  \n- Prevalencia (pacientes con DM) en tu OOAD o unidad  \n- Mortalidad por diabetes  \n- Consultas, egresos hospitalarios o incapacidades por DM  \n\nDime el tema, el a\u00f1o(s) y el \u00e1mbito geogr\u00e1fico (nacional, OOAD, unidad) que te interesan.",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_df9df215bd2c4e6b819e9b5cdc529a77",
+    "run_trace_id": "trace_0dba3ba3123e40339bd7aeea61e591da",
+    "timestamp": 1765299516775298
+  }
+]
