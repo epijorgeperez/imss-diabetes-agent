@@ -100,6 +100,7 @@ export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
         <div 
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={() => setMobileOpen(false)}
+          style={{ pointerEvents: 'auto' }}
         />
       )}
 
@@ -111,8 +112,8 @@ export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
         {sidebarContent}
       </div>
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:flex w-80 border-r bg-muted/30 flex-col h-full">
+      {/* Desktop sidebar - ensure it doesn't block content */}
+      <div className="hidden lg:flex w-80 border-r bg-muted/30 flex-col h-full shrink-0">
         {sidebarContent}
       </div>
     </>

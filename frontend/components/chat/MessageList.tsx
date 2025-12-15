@@ -38,7 +38,7 @@ export function MessageList({
   }, [messages, streamingContent, isStreaming])
 
   return (
-    <div className="w-full" ref={scrollRef}>
+    <div className="w-full relative" ref={scrollRef}>
       <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
         {messages.length === 0 && !isStreaming && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -122,7 +122,7 @@ function MessageItem({ message }: { message: Message }) {
   }
 
   return (
-    <div className={cn('flex gap-4', isUser && 'flex-row-reverse')}>
+    <div className={cn('flex gap-4 relative z-0', isUser && 'flex-row-reverse')}>
       <Avatar className="h-8 w-8 flex-shrink-0">
         <AvatarFallback
           className={cn(
@@ -155,7 +155,7 @@ function MessageItem({ message }: { message: Message }) {
         )}
         <div
           className={cn(
-            'rounded-lg border p-4 relative group',
+            'rounded-lg border p-4 relative group z-0',
             isUser
               ? 'bg-primary text-primary-foreground'
               : 'bg-card text-card-foreground'

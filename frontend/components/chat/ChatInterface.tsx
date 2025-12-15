@@ -226,7 +226,7 @@ export function ChatInterface() {
   return (
     <div className="flex flex-1 overflow-hidden">
       <Sidebar onSelectChat={handleSelectChat} currentChatId={chatId} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden relative z-0">
         <div className="flex-1 overflow-y-auto">
           <MessageList
             messages={messages}

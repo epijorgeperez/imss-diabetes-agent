@@ -38,7 +38,7 @@ export function FileDownload({ href, children, filename }: FileDownloadProps) {
   }
 
   return (
-    <Card className="my-4 border-primary/20 bg-primary/5">
+    <Card className="my-4 border-primary/20 bg-primary/5 relative z-10">
       <CardContent className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl">{getFileIcon()}</span>
@@ -47,7 +47,12 @@ export function FileDownload({ href, children, filename }: FileDownloadProps) {
             <p className="text-xs text-muted-foreground">Click to download</p>
           </div>
         </div>
-        <Button onClick={handleDownload} variant="outline" size="sm">
+        <Button 
+          onClick={handleDownload} 
+          variant="outline" 
+          size="sm"
+          className="relative z-10"
+        >
           <Download className="mr-2 h-4 w-4" />
           Download
         </Button>
