@@ -24,6 +24,14 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/files/:path*',
+        destination: 'http://127.0.0.1:8001/files/:path*', // Proxy to backend
+      },
+    ]
+  },
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,

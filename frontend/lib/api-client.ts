@@ -16,8 +16,12 @@ export function getBackendFileUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path
   }
-  // Transform relative paths like /files/outputs/graph.png to full backend URL
+  // Use relative paths for /files/* to leverage Next.js rewrites
+  // This proxies through frontend to avoid CORS issues
   const cleanPath = path.startsWith('/') ? path : `/${path}`
+  if (cleanPath.startsWith('/files/')) {
+    return cleanPath // Let Next.js rewrites handle proxying to backend
+  }
   return `${API_CONFIG.baseURL}${cleanPath}`
 }
 
