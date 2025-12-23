@@ -18,14 +18,6 @@ export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
   const { chatId, resetChat } = useChatId()
   const { allSessions, deleteSession, updateSessionTitle } = useChatHistory(chatId)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(true)
-
-  useEffect(() => {
-    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024)
-    checkDesktop()
-    window.addEventListener('resize', checkDesktop)
-    return () => window.removeEventListener('resize', checkDesktop)
-  }, [])
 
   const handleNewChat = () => {
     resetChat()
@@ -95,40 +87,35 @@ export function Sidebar({ onSelectChat, currentChatId }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile menu button - only render on mobile */}
-      {!isDesktop && (
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="fixed top-4 left-4 z-50 p-2 rounded-md bg-background border shadow-sm"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      )}
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setMobileOpen(!mobileOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-background border shadow-sm"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
-      {/* Mobile sidebar overlay - only render on mobile when open */}
-      {!isDesktop && mobileOpen && (
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={() => setMobileOpen(false)}
+          style={{ pointerEvents: 'auto' }}
         />
       )}
 
-      {/* Mobile sidebar - only render on mobile */}
-      {!isDesktop && (
-        <div className={cn(
-          "fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transform transition-transform duration-200",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}>
-          {sidebarContent}
-        </div>
-      )}
+      {/* Mobile sidebar */}
+      <div className={cn(
+        "lg:hidden fixed inset-y-0 left-0 z-50 w-80 bg-background border-r transform transition-transform duration-200",
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        {sidebarContent}
+      </div>
 
-      {/* Desktop sidebar - only render on desktop */}
-      {isDesktop && (
-        <div className="w-80 border-r bg-muted/30 flex flex-col h-full shrink-0">
-          {sidebarContent}
-        </div>
-      )}
+      {/* Desktop sidebar - ensure it doesn't block content */}
+      <div className="hidden lg:flex w-80 border-r bg-muted/30 flex-col h-full shrink-0">
+        {sidebarContent}
+      </div>
     </>
   )
 }
