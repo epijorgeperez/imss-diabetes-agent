@@ -58,7 +58,7 @@ export function MessageList({
         ))}
 
         {isStreaming && (
-          <div className="flex gap-4">
+          <div className="flex gap-4 relative" style={{ pointerEvents: 'auto' }}>
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-primary text-primary-foreground">
                 <Bot className="h-4 w-4" />

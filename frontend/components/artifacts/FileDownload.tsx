@@ -38,7 +38,11 @@ export function FileDownload({ href, children, filename }: FileDownloadProps) {
   }
 
   return (
-    <Card className="my-4 border-primary/20 bg-primary/5 relative z-10">
+    <Card 
+      className="my-4 border-primary/20 bg-primary/5 relative z-10 cursor-pointer hover:bg-primary/10 transition-colors"
+      onClick={handleDownload}
+      style={{ pointerEvents: 'auto' }}
+    >
       <CardContent className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl">{getFileIcon()}</span>
@@ -48,10 +52,14 @@ export function FileDownload({ href, children, filename }: FileDownloadProps) {
           </div>
         </div>
         <Button 
-          onClick={handleDownload} 
+          onClick={(e) => {
+            e.stopPropagation()
+            handleDownload()
+          }} 
           variant="outline" 
           size="sm"
           className="relative z-10"
+          style={{ pointerEvents: 'auto' }}
         >
           <Download className="mr-2 h-4 w-4" />
           Download
