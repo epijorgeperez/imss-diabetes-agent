@@ -10,6 +10,71 @@ import os
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "files", "outputs")
 
 
+class EstiloInstitucional:
+    """
+    Define la paleta de colores y estilos tipográficos basados 
+    en la guía cromática institucional del IMSS.
+    """
+    # Colores extraídos y estandarizados
+    NEGRO = '#222223'        # Negro Institucional
+    VERDE_IMSS = '#00594C'   # Verde Institucional (Pantone 561 C)
+    GRIS_TEXTO = '#B1B3B3'   # Gris Institucional
+    TINTO = '#651D32'        # Tinto/Vino
+    ROJO_GOB = '#9B2242'     # Rojo Gobierno (Acento)
+    DORADO_IMSS = '#AD841F'  # Dorado/Ocre Institucional
+    BLANCO = '#FFFFFF'       # Blanco
+    
+    @classmethod
+    def aplicar_estilo(cls):
+        """Aplica la configuración global a Matplotlib/Seaborn"""
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib as mpl
+            
+            # Configure matplotlib directly with institutional colors
+            plt.style.use('seaborn-v0_8-whitegrid')
+            
+            plt.rcParams.update({
+                # Fonts
+                'font.family': 'sans-serif',
+                'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans'],
+                # Text colors
+                'text.color': cls.NEGRO,
+                'axes.labelcolor': cls.NEGRO,
+                'xtick.color': cls.NEGRO,
+                'ytick.color': cls.NEGRO,
+                # Sizes
+                'axes.titlesize': 14,
+                'axes.titleweight': 'bold',
+                'axes.labelsize': 11,
+                'figure.figsize': (12, 6),
+                # Background
+                'axes.facecolor': cls.BLANCO,
+                'figure.facecolor': cls.BLANCO,
+                # Grid
+                'grid.color': cls.GRIS_TEXTO,
+                'grid.alpha': 0.3,
+                # Color cycle - THIS IS THE KEY
+                'axes.prop_cycle': mpl.cycler(color=[
+                    cls.VERDE_IMSS, 
+                    cls.DORADO_IMSS, 
+                    cls.ROJO_GOB, 
+                    cls.TINTO, 
+                    cls.GRIS_TEXTO
+                ])
+            })
+            
+            # Also set seaborn palette if available
+            try:
+                import seaborn as sns
+                sns.set_palette([cls.VERDE_IMSS, cls.DORADO_IMSS, cls.ROJO_GOB, cls.TINTO, cls.GRIS_TEXTO])
+            except ImportError:
+                pass
+                
+        except ImportError:
+            pass
+
+
 class IPythonInterpreter(BaseTool):
     """
     Ejecuta código Python en un namespace aislado y persistente por sesión.
@@ -20,16 +85,19 @@ class IPythonInterpreter(BaseTool):
     - `query_columns`: Lista de nombres de columnas
     - `query_row_count`: Número total de filas
     - `OUTPUT_DIR`: Directorio para guardar archivos generados
+    - `EstiloInstitucional`: Clase con paleta de colores IMSS (VERDE_IMSS, DORADO_IMSS, etc.)
     
     Librerías pre-importadas: pandas (pd), numpy (np), matplotlib.pyplot (plt), 
     seaborn (sns), json, datetime, os.
     
+    Estilo institucional IMSS aplicado automáticamente a todas las gráficas.
     Variables e imports persisten entre ejecuciones de la misma sesión.
     
     Ejemplos de uso:
     - Crear DataFrame: `df = pd.DataFrame(query_results)`
     - Calcular tasas: `df['tasa'] = (df['casos'] / df['poblacion']) * 100000`
     - Guardar gráfica: `plt.savefig(f'{OUTPUT_DIR}/grafica.png')`
+    - Usar colores institucionales: `plt.bar(x, y, color=EstiloInstitucional.VERDE_IMSS)`
     """
 
     code: str = Field(
@@ -74,7 +142,12 @@ class IPythonInterpreter(BaseTool):
                 import matplotlib
                 matplotlib.use('Agg')  # Non-GUI backend for server
                 import matplotlib.pyplot as plt
+                
+                # Apply institutional IMSS style BEFORE creating any plots
+                EstiloInstitucional.aplicar_estilo()
+                
                 namespace["plt"] = plt
+                namespace["EstiloInstitucional"] = EstiloInstitucional
             except ImportError:
                 pass
             
@@ -83,6 +156,16 @@ class IPythonInterpreter(BaseTool):
                 namespace["sns"] = sns
             except ImportError:
                 pass
+
+            try:
+                import scipy.stats as stats
+                namespace["stats"] = stats
+            except ImportError: pass
+
+            try:
+                import statsmodels.api as sm
+                namespace["sm"] = sm
+            except ImportError: pass
             
             self.context.set("python_namespace", namespace)
         
@@ -180,19 +263,19 @@ print(df.to_string(index=False))
     tool2._context = ctx_wrapper
     print(asyncio.run(tool2.run()))
     
-    # Test 3: Generate chart (if matplotlib available)
-    print("\nTest 3 - Generar gráfica:")
+    # Test 3: Generate chart with institutional style
+    print("\nTest 3 - Generar gráfica con estilo institucional:")
     tool3 = IPythonInterpreter(code="""
-plt.figure(figsize=(10, 6))
-plt.bar(df['Nombre_OOAD'], df['tasa_incidencia'], color='steelblue')
+plt.figure(figsize=(12, 6))
+plt.bar(df['Nombre_OOAD'], df['tasa_incidencia'])
 plt.title('Tasa de Incidencia por Delegación')
 plt.xlabel('Delegación')
 plt.ylabel('Tasa por 100,000 hab.')
 plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig(f'{OUTPUT_DIR}/incidencia_test.png', dpi=150)
+plt.savefig(f'{OUTPUT_DIR}/incidencia_test.png', dpi=150, bbox_inches='tight')
 plt.close()
-print(f"Gráfica guardada en {OUTPUT_DIR}/incidencia_test.png")
+print(f"Gráfica guardada con colores institucionales en {OUTPUT_DIR}/incidencia_test.png")
 """)
     tool3._context = ctx_wrapper
     print(asyncio.run(tool3.run()))

@@ -47,6 +47,22 @@ Guarda los resultados de `query_results` en archivo.
 - **Formatos**: CSV (recomendado), Excel (.xlsx), JSON
 - Los archivos se guardan en el directorio de outputs
 
+## `GenerateReportTool`
+Ensambla un reporte PDF profesional con identidad gráfica institucional (IMSS).
+Usa esta herramienta al FINAL del flujo, después de haber obtenido datos y generado gráficos.
+
+**Argumentos Requeridos (Obligatorios):**
+- `titulo`: (str) Título principal del reporte.
+- `introduccion`: (str) Contexto general y objetivo del reporte.
+- `analisis`: (str) Interpretación detallada de los datos, tendencias y hallazgos.
+- `conclusiones`: (str) Puntos clave y recomendaciones finales.
+- `nombre_archivo_salida`: (str) Nombre deseado para el archivo PDF (sin extensión). Ej: `reporte_incidencia_jalisco`.
+
+**Argumentos Opcionales (Pero recomendados):**
+- `imagenes`: (list[str]) Lista con los nombres exactos de los archivos `.png` que generaste previamente con `IPythonInterpreter`. Ej: `['tendencia.png', 'mapa.png']`.
+- `datos_tablas`: (list[dict]) Lista de tablas para renderizar nativamente en el PDF. Útil para rankings o resúmenes numéricos.
+  - Estructura requerida: `[{"titulo": "Nombre Tabla", "filas": [["Encabezado1", "Encabezado2"], ["Dato1", "Dato2"]]}]`.
+
 ## `load_images`
 Carga imágenes/gráficas generadas para análisis visual.
 - Permite "ver" las gráficas creadas con matplotlib/seaborn
@@ -60,7 +76,7 @@ Carga imágenes/gráficas generadas para análisis visual.
 Analiza la pregunta del usuario. Identifica:
 - Tipo de indicador: incidencia, prevalencia, mortalidad, hospitalizaciones
 - Dimensiones requeridas: geográfica, demográfica, temporal
-- Complejidad: ¿consulta simple o análisis estadístico?
+- Entregable: ¿El usuario quiere una respuesta rápida, un archivo de datos o un Reporte PDF?
 
 ### 2. Clasificar el Tipo de Consulta y Seleccionar Vista
 - **Incidencia** (Casos Nuevos): usar `V_Agente_Incidencia`
@@ -126,19 +142,27 @@ plt.close()
 print(f"Gráfica guardada en {OUTPUT_DIR}/piramide_diabetes.png")
 ```
 
-### 7. Visualizar Gráficas (opcional)
+### 7. Generación del Reporte PDF (`GenerateReportTool`)
+Si el usuario solicita un reporte PDF, usa `GenerateReportTool` para generar el reporte. Una vez que tienes los datos "en mente" y los gráficos en disco:
+
+1.  **Redacción:** Escribe `titulo`, `introduccion`, `analisis` y `conclusiones` con tu interpretación experta.
+2.  **Gráficos:** Pasa la lista de nombres de archivos en `imagenes`.
+3.  **Tablas:** Si hay datos que se ven mejor en tabla (ej: Rankings, Comparativos), usa el campo `datos_tablas` siguiendo la estructura JSON correcta.
+4.  **Archivo:** Asigna un nombre descriptivo en `nombre_archivo_salida` (sin .pdf).
+
+### 8. Visualizar Gráficas (opcional)
 Si creaste gráficos, usa `load_images` para revisarlos:
 ```
 load_images(file_paths=["piramide_diabetes.png"])
 ```
 
-### 8. Exportar Datos (si se solicita)
+### 9. Exportar Datos (si se solicita)
 Usa `SaveOutputFile` para guardar resultados:
 ```
 SaveOutputFile(filename="incidencia_jalisco_2024", format="csv")
 ```
 
-### 9. Generar Respuesta
+### 10. Generar Respuesta
 
 **Para consultas simples (≤50 filas):**
 - Responde directamente con los datos
@@ -432,6 +456,29 @@ WHERE H.Anio = 2024
   AND H.Nivel_Jerarquico = 'OOAD'
 GROUP BY H.Nombre_OOAD, H.Anio;
 ```
+
+---
+## Guía para Estructurar Tablas en PDF
+
+Para que `GenerateReportTool` pueda dibujar tablas usando el estilo institucional (Verde/Dorado), debes enviar los datos en el siguiente formato dentro del campo `datos_tablas`:
+
+```json
+[
+  {
+    "titulo": "Título de la Tabla (Ej. Top 10 Unidades)",
+    "filas": [
+      ["Encabezado 1", "Encabezado 2", "Encabezado 3"],  // La primera fila SIEMPRE son los títulos
+      ["Dato A1",      "Dato A2",      "Dato A3"],       // Fila de datos 1
+      ["Dato B1",      "Dato B2",      "Dato B3"]        // Fila de datos 2
+    ]
+  }
+]
+```
+
+### Reglas para tablas
+
+- **No incluyas tablas gigantes** (máximo 15-20 filas). Si tienes más datos, utiliza `SaveOutputFile` para exportar a Excel.
+- **La primera fila siempre debe ser de encabezados**: asegúrate que el primer elemento en `filas` tenga los títulos de las columnas.
 
 ---
 

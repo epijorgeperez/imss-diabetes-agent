@@ -92,3 +92,4 @@ service-account.json
 /backend/.agency_swarm_chats/
 /backend/docs/
 update.sh
+presentación/*
