@@ -7,6 +7,7 @@ import { useAgencyStream } from '@/hooks/useAgencyStream'
 import { Sidebar } from './Sidebar'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
+import { StudioPanel } from '@/components/studio'
 import { useToast } from '@/components/ui/use-toast'
 import { generateId } from '@/lib/utils'
 import type { Message } from '@/types/chat'
@@ -223,19 +224,28 @@ export function ChatInterface() {
     )
   }
 
+  const showStudioPanel = messages.length === 0 && !isStreaming
+
   return (
     <div className="flex flex-1 overflow-hidden">
       <Sidebar onSelectChat={handleSelectChat} currentChatId={chatId} />
       <div className="flex flex-1 flex-col overflow-hidden relative z-0">
         <div className="flex-1 overflow-y-auto">
-          <MessageList
-            messages={messages}
-            isStreaming={isStreaming}
-            currentTool={currentTool}
-            streamingContent={isStreaming ? fullMessage : undefined}
-            streamingToolCalls={isStreaming ? toolCalls : undefined}
-            streamingToolResults={isStreaming ? toolResults : undefined}
-          />
+          {showStudioPanel ? (
+            <StudioPanel 
+              onSubmit={handleSendMessage}
+              disabled={isStreaming || !isReady}
+            />
+          ) : (
+            <MessageList
+              messages={messages}
+              isStreaming={isStreaming}
+              currentTool={currentTool}
+              streamingContent={isStreaming ? fullMessage : undefined}
+              streamingToolCalls={isStreaming ? toolCalls : undefined}
+              streamingToolResults={isStreaming ? toolResults : undefined}
+            />
+          )}
         </div>
         <MessageInput
           onSend={handleSendMessage}
