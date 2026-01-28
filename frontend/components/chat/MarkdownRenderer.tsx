@@ -44,57 +44,152 @@ function MathBlock({ latex, display }: { latex: string; display: boolean }) {
   )
 }
 
+// Extract raw LaTeX expression starting at position, handling nested braces
+function extractLatexExpression(text: string, startIndex: number): string | null {
+  let i = startIndex
+  let braceDepth = 0
+  let started = false
+  
+  while (i < text.length) {
+    const char = text[i]
+    
+    if (char === '{') {
+      braceDepth++
+      started = true
+    } else if (char === '}') {
+      braceDepth--
+      if (started && braceDepth === 0) {
+        // Check if there's more LaTeX after this (like \times, =, etc.)
+        const rest = text.slice(i + 1)
+        const continueMatch = rest.match(/^(\s*(?:\\times|\\quad|\s*=\s*|\\frac|\\text)\s*)/)
+        if (continueMatch) {
+          i += continueMatch[0].length
+          continue
+        }
+        // Check for trailing number like \times 100
+        const numberMatch = rest.match(/^(\s*[\d{,}]+)/)
+        if (numberMatch) {
+          return text.slice(startIndex, i + 1 + numberMatch[0].length)
+        }
+        return text.slice(startIndex, i + 1)
+      }
+    } else if (braceDepth === 0 && started) {
+      // Outside braces after completing an expression
+      const nextPart = text.slice(i)
+      if (nextPart.match(/^\s*(?:\\times|\\quad|=|\\frac|\\text)/)) {
+        // Continue parsing
+        const cmdMatch = nextPart.match(/^\s*(\\[a-zA-Z]+|=)/)
+        if (cmdMatch) {
+          i += cmdMatch[0].length - 1
+        }
+      } else {
+        return text.slice(startIndex, i)
+      }
+    }
+    i++
+  }
+  
+  return started ? text.slice(startIndex, i) : null
+}
+
 // Process text to find and render LaTeX expressions
 function processTextWithMath(text: string): React.ReactNode[] {
   const result: React.ReactNode[] = []
-  let lastIndex = 0
   let key = 0
 
-  // Combined regex for all math patterns:
-  // 1. Block: $$ ... $$
-  // 2. Block: \[ ... \]
-  // 3. Block: [ ... ] (with LaTeX inside)
-  // 4. Inline: $ ... $ (not $$)
-  // 5. Inline: \( ... \)
-  const mathRegex = /\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]|\[\s*((?:\\[a-zA-Z]+|\\frac|\\text|\\sum|\\times|\\quad|\^|_)[^\]]*)\s*\]|\$([^\$\n]+?)\$|\\\(([^\)]+?)\\\)/g
-
+  // First pass: handle delimited math
+  // Regex for delimited patterns only
+  const delimitedRegex = /\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]|\[\s*([^\]]*\\[a-zA-Z]+[^\]]*)\s*\]|\$([^\$\n]+?)\$|\\\(([^\)]+?)\\\)/g
+  
+  let segments: { type: 'text' | 'math'; content: string; display: boolean }[] = []
+  let lastIndex = 0
   let match
-  while ((match = mathRegex.exec(text)) !== null) {
-    // Add text before match
+  
+  while ((match = delimitedRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      result.push(<Fragment key={key++}>{text.slice(lastIndex, match.index)}</Fragment>)
+      segments.push({ type: 'text', content: text.slice(lastIndex, match.index), display: false })
     }
-
-    // Determine which group matched and if it's display mode
+    
     let latex: string
     let displayMode: boolean
-
+    
     if (match[1] !== undefined) {
-      // $$ ... $$
       latex = match[1].trim()
       displayMode = true
     } else if (match[2] !== undefined) {
-      // \[ ... \]
       latex = match[2].trim()
       displayMode = true
     } else if (match[3] !== undefined) {
-      // [ ... ] with LaTeX
       latex = match[3].trim()
-      displayMode = true
+      displayMode = false
     } else if (match[4] !== undefined) {
-      // $ ... $
       latex = match[4].trim()
       displayMode = false
     } else if (match[5] !== undefined) {
-      // \( ... \)
       latex = match[5].trim()
       displayMode = false
     } else {
       continue
     }
-
-    result.push(<MathBlock key={key++} latex={latex} display={displayMode} />)
+    
+    segments.push({ type: 'math', content: latex, display: displayMode })
     lastIndex = match.index + match[0].length
+  }
+  
+  if (lastIndex < text.length) {
+    segments.push({ type: 'text', content: text.slice(lastIndex), display: false })
+  }
+  
+  // Second pass: process text segments for raw LaTeX (no delimiters)
+  const processedSegments: typeof segments = []
+  
+  for (const seg of segments) {
+    if (seg.type === 'math') {
+      processedSegments.push(seg)
+      continue
+    }
+    
+    // Look for raw LaTeX in text: \text{...}, \frac{...}, etc.
+    const rawLatexRegex = /\\(?:text|frac|times|sum|quad|sqrt)\{/g
+    let textContent = seg.content
+    let rawMatch
+    let rawLastIndex = 0
+    
+    while ((rawMatch = rawLatexRegex.exec(textContent)) !== null) {
+      if (rawMatch.index > rawLastIndex) {
+        const before = textContent.slice(rawLastIndex, rawMatch.index)
+        if (before.trim()) {
+          processedSegments.push({ type: 'text', content: before, display: false })
+        }
+      }
+      
+      const extracted = extractLatexExpression(textContent, rawMatch.index)
+      if (extracted) {
+        processedSegments.push({ type: 'math', content: extracted, display: false })
+        rawLastIndex = rawMatch.index + extracted.length
+        rawLatexRegex.lastIndex = rawLastIndex
+      } else {
+        rawLastIndex = rawMatch.index + rawMatch[0].length
+      }
+    }
+    
+    if (rawLastIndex < textContent.length) {
+      const remaining = textContent.slice(rawLastIndex)
+      if (remaining.trim()) {
+        processedSegments.push({ type: 'text', content: remaining, display: false })
+      }
+    } else if (rawLastIndex === 0 && textContent.trim()) {
+      processedSegments.push(seg)
+    }
+  }
+  
+  // Convert to React nodes
+  for (const seg of processedSegments) {
+    if (seg.type === 'math') {
+      result.push(<MathBlock key={key++} latex={seg.content} display={seg.display} />)
+    } else {
+      result.push(<Fragment key={key++}>{seg.content}</Fragment>)
+    }
   }
 
   // Add remaining text
