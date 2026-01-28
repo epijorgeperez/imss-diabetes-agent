@@ -3,6 +3,9 @@
 import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Copy, Check } from 'lucide-react'
@@ -18,9 +21,28 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
-  // Transform markdown content to handle image URLs and download links
+  // Transform markdown content to handle image URLs, download links, and LaTeX
   const transformedContent = useMemo(() => {
     let transformed = content
+
+    // Transform LaTeX block math: [formula] -> $$formula$$
+    // Matches [...] that contain LaTeX commands (backslashes) on their own line
+    transformed = transformed.replace(
+      /^\[\s*\n?([\s\S]*?)\n?\s*\]$/gm,
+      (match, formula) => {
+        // Only transform if it looks like LaTeX (contains backslashes or common LaTeX patterns)
+        if (formula.match(/\\[a-zA-Z]+|\\frac|\\text|\\sum|\\times|\^|_/)) {
+          return `$$\n${formula.trim()}\n$$`
+        }
+        return match
+      }
+    )
+
+    // Also handle inline [...] LaTeX on single lines
+    transformed = transformed.replace(
+      /\[\s*(\\[^\]]+)\s*\]/g,
+      (match, formula) => `$$${formula.trim()}$$`
+    )
 
     // Transform image markdown: ![alt](/files/outputs/image.png) 
     // This is handled in the image component renderer, but we ensure paths are correct
@@ -40,7 +62,8 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           // Code blocks with syntax highlighting
           code({ node, inline, className, children, ...props }: any) {
