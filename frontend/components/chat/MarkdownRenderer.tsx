@@ -138,58 +138,111 @@ function extractLatexExpression(text: string, startIndex: number): string | null
   return started ? text.slice(startIndex, i) : null
 }
 
+// Check if text contains LaTeX commands
+function containsLatex(text: string): boolean {
+  return /\\(?:frac|text|sum|times|quad|sqrt|int|prod|lim|log|sin|cos|tan|alpha|beta|gamma|delta|lambda|mu|sigma|pi|infty|partial|nabla|pm|mp|cdot|ldots|cdots|leq|geq|neq|approx|equiv|subset|supset|cap|cup|in|notin|forall|exists|mathbb|mathcal|mathrm|hat|bar|vec|dot|tilde|left|right|big|Big|bigg|Bigg)[{_^]?/.test(text)
+}
+
 // Process text to find and render LaTeX expressions
 function processTextWithMath(text: string): React.ReactNode[] {
   const result: React.ReactNode[] = []
   let key = 0
 
-  // First pass: handle delimited math
-  // Regex for delimited patterns only
-  const delimitedRegex = /\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]|\[\s*([^\]]*\\[a-zA-Z]+[^\]]*)\s*\]|\$([^\$\n]+?)\$|\\\(([^\)]+?)\\\)/g
-  
   let segments: { type: 'text' | 'math'; content: string; display: boolean }[] = []
-  let lastIndex = 0
-  let match
   
-  while ((match = delimitedRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push({ type: 'text', content: text.slice(lastIndex, match.index), display: false })
+  // Pattern 1: $$ ... $$ (block math)
+  // Pattern 2: \[ ... \] (block math)  
+  // Pattern 3: [ ... ] containing LaTeX (block math from LLM)
+  // Pattern 4: $ ... $ (inline math)
+  // Pattern 5: \( ... \) (inline math)
+  
+  // Use a more permissive approach for [ ... ] blocks
+  const mathPatterns = [
+    { regex: /\$\$([\s\S]*?)\$\$/g, display: true },
+    { regex: /\\\[([\s\S]*?)\\\]/g, display: true },
+    { regex: /\$([^\$\n]+?)\$/g, display: false },
+    { regex: /\\\(([^\)]+?)\\\)/g, display: false },
+  ]
+  
+  // First, find all [ ... ] blocks that contain LaTeX
+  const bracketBlockRegex = /\[\s*([\s\S]*?)\s*\]/g
+  const bracketMathBlocks: { start: number; end: number; content: string }[] = []
+  
+  let bracketMatch
+  while ((bracketMatch = bracketBlockRegex.exec(text)) !== null) {
+    const content = bracketMatch[1]
+    // Check if this looks like LaTeX (contains backslash commands)
+    if (containsLatex(content)) {
+      bracketMathBlocks.push({
+        start: bracketMatch.index,
+        end: bracketMatch.index + bracketMatch[0].length,
+        content: content.trim()
+      })
     }
-    
-    let latex: string
-    let displayMode: boolean
-    
-    if (match[1] !== undefined) {
-      latex = match[1].trim()
-      displayMode = true
-    } else if (match[2] !== undefined) {
-      latex = match[2].trim()
-      displayMode = true
-    } else if (match[3] !== undefined) {
-      latex = match[3].trim()
-      displayMode = false
-    } else if (match[4] !== undefined) {
-      latex = match[4].trim()
-      displayMode = false
-    } else if (match[5] !== undefined) {
-      latex = match[5].trim()
-      displayMode = false
-    } else {
+  }
+  
+  // Build segments from bracket math blocks first
+  let currentIndex = 0
+  for (const block of bracketMathBlocks) {
+    if (block.start > currentIndex) {
+      segments.push({ type: 'text', content: text.slice(currentIndex, block.start), display: false })
+    }
+    segments.push({ type: 'math', content: block.content, display: true })
+    currentIndex = block.end
+  }
+  if (currentIndex < text.length) {
+    segments.push({ type: 'text', content: text.slice(currentIndex), display: false })
+  }
+  
+  // Now process text segments for other math patterns ($, $$, \[, \()
+  const finalSegments: typeof segments = []
+  
+  for (const seg of segments) {
+    if (seg.type === 'math') {
+      finalSegments.push(seg)
       continue
     }
     
-    segments.push({ type: 'math', content: latex, display: displayMode })
-    lastIndex = match.index + match[0].length
-  }
-  
-  if (lastIndex < text.length) {
-    segments.push({ type: 'text', content: text.slice(lastIndex), display: false })
+    let textContent = seg.content
+    let foundMath = false
+    
+    // Try each math pattern
+    for (const { regex, display } of mathPatterns) {
+      regex.lastIndex = 0
+      let match
+      let segLastIndex = 0
+      const tempSegments: typeof segments = []
+      
+      while ((match = regex.exec(textContent)) !== null) {
+        foundMath = true
+        if (match.index > segLastIndex) {
+          tempSegments.push({ type: 'text', content: textContent.slice(segLastIndex, match.index), display: false })
+        }
+        tempSegments.push({ type: 'math', content: match[1].trim(), display })
+        segLastIndex = match.index + match[0].length
+      }
+      
+      if (foundMath) {
+        if (segLastIndex < textContent.length) {
+          tempSegments.push({ type: 'text', content: textContent.slice(segLastIndex), display: false })
+        }
+        // Process these segments recursively for remaining patterns
+        for (const ts of tempSegments) {
+          finalSegments.push(ts)
+        }
+        break
+      }
+    }
+    
+    if (!foundMath) {
+      finalSegments.push(seg)
+    }
   }
   
   // Second pass: process text segments for raw LaTeX (no delimiters)
-  const processedSegments: typeof segments = []
+  const processedSegments: typeof finalSegments = []
   
-  for (const seg of segments) {
+  for (const seg of finalSegments) {
     if (seg.type === 'math') {
       processedSegments.push(seg)
       continue
@@ -236,11 +289,6 @@ function processTextWithMath(text: string): React.ReactNode[] {
     } else {
       result.push(<Fragment key={key++}>{seg.content}</Fragment>)
     }
-  }
-
-  // Add remaining text
-  if (lastIndex < text.length) {
-    result.push(<Fragment key={key++}>{text.slice(lastIndex)}</Fragment>)
   }
 
   return result.length > 0 ? result : [<Fragment key={0}>{text}</Fragment>]
