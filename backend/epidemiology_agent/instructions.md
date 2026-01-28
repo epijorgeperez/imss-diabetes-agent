@@ -68,6 +68,47 @@ Carga imágenes/gráficas generadas para análisis visual.
 - Permite "ver" las gráficas creadas con matplotlib/seaborn
 - Busca automáticamente en el directorio de outputs
 
+# Persistencia de Datos entre Mensajes
+
+## Comportamiento del Contexto
+
+**Los datos persisten automáticamente entre mensajes de la misma conversación:**
+
+| Dato | Persistencia | Cómo acceder |
+|------|--------------|--------------|
+| `query_results` | ✅ Persiste entre mensajes | Se carga automáticamente si existe |
+| Variables Python (df, etc.) | ✅ Persiste entre mensajes | Se restauran automáticamente |
+| Gráficas generadas | ✅ Persisten en disco | Usar `load_images` o links markdown |
+
+## Flujo de Datos
+
+```
+Mensaje 1: QueryDatabase → query_results guardado en contexto Y disco
+                                    ↓
+Mensaje 2: IPythonInterpreter → query_results cargado automáticamente del disco
+                                    ↓  
+Mensaje 3: IPythonInterpreter → variables Python (df, etc.) restauradas
+```
+
+## Reglas Importantes
+
+1. **NO necesitas re-ejecutar QueryDatabase** si ya lo ejecutaste en un mensaje anterior de la misma conversación.
+
+2. **SIEMPRE usa `print()`** para mostrar resultados en el chat. El entorno NO muestra variables automáticamente:
+   ```python
+   # ✅ CORRECTO - se verá en el chat
+   df = pd.DataFrame(query_results)
+   print(df.head(10).to_string(index=False))
+   
+   # ❌ INCORRECTO - NO se verá en el chat
+   df = pd.DataFrame(query_results)
+   df.head(10)  # Esto no se muestra
+   ```
+
+3. **Si `query_results` no existe**, ejecuta `QueryDatabase` primero.
+
+4. **Cada conversación (chat_id) tiene su propio contexto aislado.** Los datos de un usuario NO se mezclan con los de otro.
+
 # Process
 
 ## Workflow Principal
@@ -106,13 +147,15 @@ Usa `QueryDatabase` con consultas optimizadas sobre las vistas. SIEMPRE usa agre
 
 **Los datos ya están en `query_results`. No copies/pegues nada.**
 
+**IMPORTANTE**: `query_results` persiste entre mensajes de la misma conversación. Si ejecutaste `QueryDatabase` en un mensaje anterior, los datos siguen disponibles.
+
 ```python
 # Las librerías ya están importadas: pd, np, plt, sns
-# query_results ya contiene los datos de la consulta SQL
+# query_results ya contiene los datos de la consulta SQL (actual o de mensaje anterior)
 
 df = pd.DataFrame(query_results)
 print(f"Dataset: {len(df)} filas, {len(df.columns)} columnas")
-print(df.describe())
+print(df.describe())  # SIEMPRE usa print() para ver resultados
 ```
 
 **Ejemplo: Calcular tasas de incidencia**

@@ -687,16 +687,17 @@
                 log('info', 'FILES', 'File attachments added', payload.file_urls);
             }
             
-            // Add user context if provided
+            // Add user context if provided (includes chat_id for cross-message persistence)
             const userId = document.getElementById('userId').value.trim();
             const userRole = document.getElementById('userRole').value.trim();
-            if (userId || userRole) {
-                payload.user_context = {};
-                if (userId) payload.user_context.user_id = userId;
-                if (userRole) payload.user_context.user_role = userRole;
-                addMessage(`🔐 User context: ${JSON.stringify(payload.user_context)}`, 'info');
-                log('debug', 'CONTEXT', 'User context added', payload.user_context);
-            }
+            // Always include user_context with chat_id for data persistence between messages
+            payload.user_context = {
+                chat_id: chatId  // Required for query_results persistence
+            };
+            if (userId) payload.user_context.user_id = userId;
+            if (userRole) payload.user_context.user_role = userRole;
+            addMessage(`🔐 User context: ${JSON.stringify(payload.user_context)}`, 'info');
+            log('debug', 'CONTEXT', 'User context added', payload.user_context);
             
             // Add additional instructions if provided
             const additionalInstructions = document.getElementById('additionalInstructions').value.trim();

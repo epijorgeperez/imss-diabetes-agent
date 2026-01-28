@@ -5,9 +5,18 @@ from io import StringIO
 import contextlib
 import traceback
 import os
+import json
+import pickle
+from pathlib import Path
 
 # Output directory for generated files
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "files", "outputs")
+
+# Directory for persisting query results and namespaces between messages
+QUERY_CACHE_DIR = Path(__file__).parent.parent / "files" / "query_cache"
+NAMESPACE_CACHE_DIR = Path(__file__).parent.parent / "files" / "namespace_cache"
+QUERY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+NAMESPACE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class EstiloInstitucional:
@@ -91,7 +100,11 @@ class IPythonInterpreter(BaseTool):
     seaborn (sns), json, datetime, os.
     
     Estilo institucional IMSS aplicado automáticamente a todas las gráficas.
-    Variables e imports persisten entre ejecuciones de la misma sesión.
+    
+    PERSISTENCIA:
+    - Variables persisten entre ejecuciones de la misma conversación (chat_id)
+    - query_results se carga automáticamente si QueryDatabase se ejecutó previamente
+    - El namespace Python se guarda/restaura entre mensajes
     
     Ejemplos de uso:
     - Crear DataFrame: `df = pd.DataFrame(query_results)`
@@ -104,6 +117,87 @@ class IPythonInterpreter(BaseTool):
         ..., 
         description="Código Python a ejecutar. Soporta múltiples líneas. Los datos de la última consulta SQL están en 'query_results'."
     )
+    
+    def _get_chat_id(self) -> str:
+        """Extracts chat_id from context for namespace persistence."""
+        if not hasattr(self, 'context') or self.context is None:
+            return "default"
+        
+        # Try user_context first (passed by client)
+        user_context = self.context.get("user_context", {})
+        if isinstance(user_context, dict) and "chat_id" in user_context:
+            return user_context["chat_id"]
+        
+        # Try direct context
+        chat_id = self.context.get("chat_id")
+        return chat_id if chat_id else "default"
+    
+    def _load_query_results_from_cache(self) -> tuple:
+        """
+        Loads query_results from disk cache if not in context.
+        Returns (results, columns, row_count) or (None, None, None) if not found.
+        """
+        chat_id = self._get_chat_id()
+        cache_file = QUERY_CACHE_DIR / f"results_{chat_id}.json"
+        
+        if not cache_file.exists():
+            return None, None, None
+        
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            return cached.get("results"), cached.get("columns", []), cached.get("row_count", 0)
+        except Exception as e:
+            print(f"[IPythonInterpreter] Warning: Could not load cached results: {e}")
+            return None, None, None
+    
+    def _load_namespace_from_cache(self) -> dict:
+        """
+        Loads persisted namespace variables from disk for cross-message continuity.
+        Only loads serializable data (DataFrames, arrays, etc.), not modules.
+        """
+        chat_id = self._get_chat_id()
+        cache_file = NAMESPACE_CACHE_DIR / f"namespace_{chat_id}.pkl"
+        
+        if not cache_file.exists():
+            return {}
+        
+        try:
+            with open(cache_file, "rb") as f:
+                return pickle.load(f)
+        except Exception as e:
+            print(f"[IPythonInterpreter] Warning: Could not load cached namespace: {e}")
+            return {}
+    
+    def _save_namespace_to_cache(self, namespace: dict):
+        """
+        Persists serializable namespace variables to disk.
+        Skips modules and non-picklable objects.
+        """
+        chat_id = self._get_chat_id()
+        cache_file = NAMESPACE_CACHE_DIR / f"namespace_{chat_id}.pkl"
+        
+        # Filter to only picklable items
+        serializable_items = {}
+        skip_keys = {"__builtins__", "__name__", "pd", "np", "plt", "sns", "json", 
+                     "datetime", "os", "stats", "sm", "EstiloInstitucional", "OUTPUT_DIR"}
+        
+        for key, value in namespace.items():
+            if key in skip_keys or key.startswith("_"):
+                continue
+            try:
+                # Test if picklable by attempting serialization
+                pickle.dumps(value)
+                serializable_items[key] = value
+            except (pickle.PicklingError, TypeError, AttributeError):
+                # Skip non-picklable items silently
+                pass
+        
+        try:
+            with open(cache_file, "wb") as f:
+                pickle.dump(serializable_items, f)
+        except Exception as e:
+            print(f"[IPythonInterpreter] Warning: Could not persist namespace: {e}")
 
     async def run(self) -> str:
         # Step 1: Ensure output directory exists
@@ -122,9 +216,9 @@ class IPythonInterpreter(BaseTool):
             }
             
             # Pre-import common libraries
-            import json
+            import json as json_module
             from datetime import datetime
-            namespace.update({"json": json, "datetime": datetime, "os": os})
+            namespace.update({"json": json_module, "datetime": datetime, "os": os})
             
             try:
                 import pandas as pd
@@ -167,6 +261,11 @@ class IPythonInterpreter(BaseTool):
                 namespace["sm"] = sm
             except ImportError: pass
             
+            # Step 2.5: Restore persisted variables from previous messages (same chat_id)
+            cached_vars = self._load_namespace_from_cache()
+            if cached_vars:
+                namespace.update(cached_vars)
+            
             self.context.set("python_namespace", namespace)
         
         # Step 3: Inject query_results from context if available
@@ -175,6 +274,17 @@ class IPythonInterpreter(BaseTool):
             namespace["query_results"] = query_results
             namespace["query_columns"] = self.context.get("query_columns", [])
             namespace["query_row_count"] = self.context.get("query_row_count", 0)
+        else:
+            # Step 3.5: If not in context, try to load from disk cache (cross-message persistence)
+            cached_results, cached_columns, cached_row_count = self._load_query_results_from_cache()
+            if cached_results is not None:
+                namespace["query_results"] = cached_results
+                namespace["query_columns"] = cached_columns
+                namespace["query_row_count"] = cached_row_count
+                # Also store in context for subsequent tool calls in same message
+                self.context.set("query_results", cached_results)
+                self.context.set("query_columns", cached_columns)
+                self.context.set("query_row_count", cached_row_count)
         
         # Step 4: Execute code
         output = StringIO()
@@ -196,8 +306,11 @@ class IPythonInterpreter(BaseTool):
             except Exception as e:
                 error = "".join(traceback.format_exception_only(type(e), e))
         
-        # Step 5: Persist updated namespace
+        # Step 5: Persist updated namespace to context (for same message)
         self.context.set("python_namespace", namespace)
+        
+        # Step 5.5: Persist namespace to disk (for cross-message continuity)
+        self._save_namespace_to_cache(namespace)
         
         stdout = output.getvalue().strip()
         
@@ -205,12 +318,23 @@ class IPythonInterpreter(BaseTool):
         response_parts = []
         
         if error:
+            # Check if error is about missing query_results and provide helpful message
+            if "query_results" in str(error) and "not defined" in str(error):
+                return (
+                    f"[ERROR]\n{error}\n\n"
+                    "⚠️ **query_results no está disponible.**\n"
+                    "Ejecuta `QueryDatabase` primero para cargar datos de la base de datos."
+                )
             return f"[ERROR]\n{error}"
         
         if stdout:
             response_parts.append(f"[OK] Output:\n{stdout}")
         elif result_value is not None:
-            response_parts.append(f"[OK] Result: {repr(result_value)}")
+            # Format DataFrames nicely
+            if hasattr(result_value, 'to_string'):
+                response_parts.append(f"[OK] Result:\n{result_value.to_string()}")
+            else:
+                response_parts.append(f"[OK] Result: {repr(result_value)}")
         else:
             response_parts.append("[OK] Ejecutado correctamente.")
         

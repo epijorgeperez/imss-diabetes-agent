@@ -4,6 +4,8 @@ from pydantic import Field
 import os
 import json
 import re
+from pathlib import Path
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,6 +20,10 @@ QUERY_TIMEOUT = int(os.getenv("QUERY_TIMEOUT", "600"))
 # Threshold for direct response vs context storage
 DIRECT_RESPONSE_THRESHOLD = 50
 
+# Directory for persisting query results between messages
+QUERY_CACHE_DIR = Path(__file__).parent.parent / "files" / "query_cache"
+QUERY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class QueryDatabase(BaseTool):
     """
@@ -27,12 +33,58 @@ class QueryDatabase(BaseTool):
     - Use aggregations (COUNT, SUM, AVG, GROUP BY) for large tables
     - Use TOP N for sampling when needed
     - Tables contain 1M+ records - optimize queries accordingly
+    
+    Results are automatically:
+    - Stored in shared context for immediate use with IPythonInterpreter
+    - Persisted to disk by chat_id for cross-message continuity
     """
     
     sql_query: str = Field(
         ..., 
         description="The SQL query to execute. Use aggregations (COUNT, SUM, GROUP BY) or TOP N."
     )
+    
+    def _get_chat_id(self) -> str:
+        """
+        Extracts chat_id from context for result persistence.
+        Falls back to 'default' if not available.
+        """
+        if not hasattr(self, 'context') or self.context is None:
+            return "default"
+        
+        # Try to get chat_id from user_context (passed by client)
+        user_context = self.context.get("user_context", {})
+        if isinstance(user_context, dict) and "chat_id" in user_context:
+            return user_context["chat_id"]
+        
+        # Try direct context
+        chat_id = self.context.get("chat_id")
+        if chat_id:
+            return chat_id
+        
+        return "default"
+    
+    def _persist_results(self, results: list, columns: list, row_count: int):
+        """
+        Persists query results to a JSON file for cross-message access.
+        File is stored by chat_id to ensure isolation between conversations.
+        """
+        chat_id = self._get_chat_id()
+        cache_file = QUERY_CACHE_DIR / f"results_{chat_id}.json"
+        
+        try:
+            cache_data = {
+                "results": results,
+                "columns": columns,
+                "row_count": row_count,
+                "timestamp": datetime.now().isoformat(),
+                "query": self.sql_query[:500]  # Store truncated query for reference
+            }
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(cache_data, f, ensure_ascii=False, default=str)
+        except Exception as e:
+            # Non-fatal: log but don't fail the query
+            print(f"[QueryDatabase] Warning: Could not persist results: {e}")
     
     def _validate_query(self, query: str) -> tuple[bool, str]:
         """
@@ -161,6 +213,9 @@ class QueryDatabase(BaseTool):
                     self.context.set("query_results", rows_as_dicts)
                     self.context.set("query_columns", columns)
                     self.context.set("query_row_count", row_count)
+                
+                # Step 9.5: Persist results to disk for cross-message access
+                self._persist_results(rows_as_dicts, columns, row_count)
                 
                 # Step 10: Format and return results
                 result = self._format_results(columns, rows, row_count)
