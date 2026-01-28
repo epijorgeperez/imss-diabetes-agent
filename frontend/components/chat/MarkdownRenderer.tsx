@@ -18,18 +18,64 @@ interface MarkdownRendererProps {
   className?: string
 }
 
+// Pre-process LaTeX to fix common issues from LLM output
+function preprocessLatex(latex: string): string {
+  let processed = latex
+
+  // Fix underscores inside \text{} - they need to be escaped or use \_ 
+  // Match \text{...} and escape underscores inside
+  processed = processed.replace(/\\text\{([^}]*)\}/g, (match, content) => {
+    // Replace _ with \_ inside \text, but not if already escaped
+    const fixed = content.replace(/(?<!\\)_/g, '\\_')
+    return `\\text{${fixed}}`
+  })
+
+  // Fix spaces in \text{} - use explicit space or ~
+  processed = processed.replace(/\\text\{([^}]*)\}/g, (match, content) => {
+    // Replace multiple spaces with single ~
+    const fixed = content.replace(/\s+/g, '~')
+    return `\\text{${fixed}}`
+  })
+
+  // Fix {,} thousand separator - should be {\,} for proper spacing or just ,
+  processed = processed.replace(/\{,\}/g, '{,}')
+
+  // Handle common issues with 100,000 style numbers in LaTeX
+  processed = processed.replace(/(\d)\{,\}(\d)/g, '$1{,}$2')
+
+  return processed
+}
+
 // Render LaTeX to HTML string
 function renderLatex(latex: string, displayMode: boolean): string {
   try {
-    return katex.renderToString(latex, {
+    const processed = preprocessLatex(latex)
+    return katex.renderToString(processed, {
       displayMode,
       throwOnError: false,
       strict: false,
       trust: true,
     })
   } catch (e) {
-    console.error('KaTeX error:', e)
-    return `<span class="text-red-500">${latex}</span>`
+    console.error('KaTeX error:', e, 'LaTeX:', latex)
+    // Try a more aggressive fix
+    try {
+      // Escape all problematic characters
+      let fallback = latex
+        .replace(/(?<!\\)_/g, '\\_')  // Escape unescaped underscores globally
+        .replace(/(?<!\\)#/g, '\\#')  // Escape hash
+        .replace(/(?<!\\)%/g, '\\%')  // Escape percent
+      
+      return katex.renderToString(fallback, {
+        displayMode,
+        throwOnError: false,
+        strict: false,
+        trust: true,
+      })
+    } catch (e2) {
+      console.error('KaTeX fallback error:', e2)
+      return `<code class="text-orange-600 bg-orange-50 px-1 rounded text-sm">${latex}</code>`
+    }
   }
 }
 
