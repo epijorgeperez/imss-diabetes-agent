@@ -1,0 +1,31 @@
+[
+  {
+    "content": "formula usada para prevalencia y mortalidad",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_23cea123d3ad4b51880842f6f61a5631",
+    "run_trace_id": "trace_d46f2b59683643bba4cdfe0672d4b416",
+    "timestamp": 1769634769135584,
+    "type": "message"
+  },
+  {
+    "id": "msg_06bcd98f12e3f3f500697a7bd2ccf081948af0d813f4582bc6",
+    "content": [
+      {
+        "annotations": [],
+        "text": "Comparto las f\u00f3rmulas tal como se usan en este entorno del IMSS para diabetes:\n\n---\n\n## 1. Prevalencia de diabetes\n\nSe calcula como **porcentaje** de personas con diabetes respecto a la poblaci\u00f3n de referencia.\n\nEn la vista `V_Agente_Prevalencia` ya vienen numerador y denominador:\n\n- Numerador: `Pacientes_Existentes`\n- Denominador: `Poblacion_Referencia_Censo`\n\n**F\u00f3rmula general:**\n\n\\[\n\\text{Prevalencia (\\%)} = \\frac{\\sum \\text{Pacientes_Existentes}}{\\sum \\text{Poblacion_Referencia_Censo}} \\times 100\n\\]\n\n**En SQL (ejemplo):**\n\n```sql\n(CAST(SUM(Pacientes_Existentes) AS FLOAT) / \n NULLIF(SUM(Poblacion_Referencia_Censo), 0)\n) * 100 AS Prevalencia_Porcentaje\n```\n\n- Resultado: porcentaje (%), no por 100,000.\n\n---\n\n## 2. Tasa de mortalidad por diabetes\n\nSe calcula como **tasa por 100,000 habitantes**.\n\nEn la vista `V_Agente_Mortalidad`:\n\n- Numerador: `Defunciones` (suma de defunciones por diabetes)\n- Denominador: `Poblacion_Adscrita_MF` (se toma de `V_Agente_Poblacion_Detalle`)\n\n**F\u00f3rmula general:**\n\n\\[\n\\text{Tasa de mortalidad} = \n\\frac{\\sum \\text{Defunciones}}{\\sum \\text{Poblacion_Adscrita\\_MF}} \\times 100{,}000\n\\]\n\n**En SQL (ejemplo t\u00edpico):**\n\n```sql\n(CAST(SUM(M.Defunciones) AS FLOAT) / \n NULLIF(\n   (SELECT SUM(P.Poblacion_Adscrita_MF)\n    FROM V_Agente_Poblacion_Detalle P\n    WHERE P.Anio = M.Anio\n      -- y se filtra mismo \u00e1mbito: Nacional / OOAD / Unidad\n   ), 0)\n) * 100000 AS Tasa_Mortalidad_x_100k\n```\n\n- Resultado: tasa por 100,000 habitantes.\n\n---\n\nSi me dices el nivel que te interesa (nacional, OOAD, unidad) y el a\u00f1o, puedo mostrarte un ejemplo completo de consulta para cada uno.",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_4c1653dc037d4bd5999d4809efa8b195",
+    "run_trace_id": "trace_d46f2b59683643bba4cdfe0672d4b416",
+    "timestamp": 1769634777277839
+  }
+]
