@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { PackageCard } from '@/components/packages'
 import { Loader2, Bot, User, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
 import type { Message, ToolCall } from '@/types/chat'
 import { cn } from '@/lib/utils'
@@ -119,6 +120,36 @@ function MessageItem({ message }: { message: Message }) {
     await navigator.clipboard.writeText(message.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  // If message has packageData, render PackageCard instead of regular message
+  if (message.packageData) {
+    return (
+      <div className="flex gap-4 relative z-0">
+        <Avatar className="h-8 w-8 flex-shrink-0">
+          <AvatarFallback className="bg-muted text-muted-foreground">
+            <Bot className="h-4 w-4" />
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          {message.toolCalls && message.toolCalls.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {message.toolCalls.map((tool, idx) => (
+                <ToolCallItem key={idx} tool={tool} />
+              ))}
+            </div>
+          )}
+          {message.toolResults && message.toolResults.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {message.toolResults.map((result, idx) => (
+                <ToolResultItem key={idx} result={result} />
+              ))}
+            </div>
+          )}
+          <PackageCard packageData={message.packageData} />
+        </div>
+      </div>
+    )
   }
 
   return (

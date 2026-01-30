@@ -119,18 +119,30 @@ class IPythonInterpreter(BaseTool):
     )
     
     def _get_chat_id(self) -> str:
-        """Extracts chat_id from context for namespace persistence."""
+        """Extracts chat_id from MasterContext for namespace persistence.
+        
+        El MasterContext tiene un dict user_context, y .get() busca directamente ahí.
+        Por ejemplo: context.get("chat_id") busca en context.user_context["chat_id"]
+        """
         if not hasattr(self, 'context') or self.context is None:
+            print("[IPythonInterpreter] WARNING: No context available, using 'default'")
             return "default"
         
-        # Try user_context first (passed by client)
+        # MasterContext.get() busca directamente en user_context
+        chat_id = self.context.get("chat_id")
+        if chat_id:
+            print(f"[IPythonInterpreter] ✅ Got chat_id from context: {chat_id[:8]}...")
+            return chat_id
+        
+        # Fallback: buscar en user_context anidado (compatibilidad hacia atrás)
         user_context = self.context.get("user_context", {})
         if isinstance(user_context, dict) and "chat_id" in user_context:
-            return user_context["chat_id"]
+            chat_id = user_context["chat_id"]
+            print(f"[IPythonInterpreter] ✅ Got chat_id from nested user_context: {chat_id[:8]}...")
+            return chat_id
         
-        # Try direct context
-        chat_id = self.context.get("chat_id")
-        return chat_id if chat_id else "default"
+        print("[IPythonInterpreter] WARNING: No chat_id found in context, using 'default'")
+        return "default"
     
     def _load_query_results_from_cache(self) -> tuple:
         """

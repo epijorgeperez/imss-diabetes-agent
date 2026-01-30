@@ -45,23 +45,29 @@ class QueryDatabase(BaseTool):
     )
     
     def _get_chat_id(self) -> str:
-        """
-        Extracts chat_id from context for result persistence.
-        Falls back to 'default' if not available.
+        """Extracts chat_id from MasterContext for result persistence.
+        
+        El MasterContext tiene un dict user_context, y .get() busca directamente ahí.
+        Por ejemplo: context.get("chat_id") busca en context.user_context["chat_id"]
         """
         if not hasattr(self, 'context') or self.context is None:
+            print("[QueryDatabase] WARNING: No context available, using 'default'")
             return "default"
         
-        # Try to get chat_id from user_context (passed by client)
-        user_context = self.context.get("user_context", {})
-        if isinstance(user_context, dict) and "chat_id" in user_context:
-            return user_context["chat_id"]
-        
-        # Try direct context
+        # MasterContext.get() busca directamente en user_context
         chat_id = self.context.get("chat_id")
         if chat_id:
+            print(f"[QueryDatabase] ✅ Got chat_id from context: {chat_id[:8]}...")
             return chat_id
         
+        # Fallback: buscar en user_context anidado (compatibilidad hacia atrás)
+        user_context = self.context.get("user_context", {})
+        if isinstance(user_context, dict) and "chat_id" in user_context:
+            chat_id = user_context["chat_id"]
+            print(f"[QueryDatabase] ✅ Got chat_id from nested user_context: {chat_id[:8]}...")
+            return chat_id
+        
+        print("[QueryDatabase] WARNING: No chat_id found in context, using 'default'")
         return "default"
     
     def _persist_results(self, results: list, columns: list, row_count: int):

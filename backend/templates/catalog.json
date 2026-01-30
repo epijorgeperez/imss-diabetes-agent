@@ -1,0 +1,289 @@
+{
+  "version": "1.0.0",
+  "templates": [
+    {
+      "id": "comite-incidencia-ooad",
+      "name": "Reporte de Incidencia para Comité OOAD",
+      "description": "Análisis de casos nuevos de diabetes para presentar en comité de OOAD. Incluye tendencias mensuales, comparativo con nacional y recomendaciones.",
+      "category": "incidencia",
+      "audience": ["ooad"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia"],
+      "constraints": {
+        "granularity": "mensual",
+        "minPeriodMonths": 12,
+        "allowedLevels": ["OOAD"]
+      },
+      "icon": "activity"
+    },
+    {
+      "id": "comite-incidencia-central",
+      "name": "Reporte de Incidencia para Comité Central",
+      "description": "Panorama nacional de incidencia de diabetes con desglose por OOAD. Para presentación ante directivos centrales.",
+      "category": "incidencia",
+      "audience": ["central"],
+      "requiredParams": ["periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft", "pdf"],
+      "defaultIndicators": ["incidencia"],
+      "constraints": {
+        "granularity": "anual",
+        "allowedLevels": ["Nacional", "OOAD"]
+      },
+      "icon": "building"
+    },
+    {
+      "id": "comparativo-inter-ooad",
+      "name": "Análisis Comparativo Inter-OOAD",
+      "description": "Comparación de indicadores entre múltiples OOADs. Identifica mejores y peores desempeños, oportunidades de mejora.",
+      "category": "comparativo",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["indicadores", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia", "prevalencia"],
+      "constraints": {
+        "allowedLevels": ["OOAD"]
+      },
+      "icon": "git-compare"
+    },
+    {
+      "id": "perfil-epidemiologico-um",
+      "name": "Perfil Epidemiológico de Unidad Médica",
+      "description": "Análisis integral de diabetes en una unidad médica específica. Incluye todos los indicadores y comparativo con su OOAD.",
+      "category": "integral",
+      "audience": ["um", "ooad"],
+      "requiredParams": ["unidad", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft", "pdf"],
+      "defaultIndicators": ["incidencia", "prevalencia", "mortalidad", "hospitalizacion"],
+      "constraints": {
+        "allowedLevels": ["Unidad Medica"]
+      },
+      "icon": "hospital"
+    },
+    {
+      "id": "tendencia-mortalidad-regional",
+      "name": "Tendencia de Mortalidad Regional",
+      "description": "Análisis de mortalidad por diabetes en una región/OOAD. Tendencias temporales y comparativo con media nacional.",
+      "category": "mortalidad",
+      "audience": ["ooad", "central"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["mortalidad"],
+      "constraints": {
+        "minPeriodMonths": 24,
+        "allowedLevels": ["Nacional", "OOAD"]
+      },
+      "icon": "trending-down"
+    },
+    {
+      "id": "dashboard-hospitalizaciones",
+      "name": "Dashboard de Hospitalizaciones",
+      "description": "Egresos hospitalarios por diabetes: volumen, días de estancia promedio, tendencias. Para gestión de camas y recursos.",
+      "category": "hospitalizacion",
+      "audience": ["ooad", "um"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["hospitalizacion"],
+      "constraints": {
+        "granularity": "mensual"
+      },
+      "icon": "bed"
+    },
+    {
+      "id": "alerta-temprana-brotes",
+      "name": "Alerta Temprana - Detección de Brotes",
+      "description": "Identifica incrementos atípicos en incidencia que podrían indicar brotes o problemas de vigilancia. Umbral: 2 desviaciones estándar.",
+      "category": "incidencia",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia"],
+      "constraints": {
+        "granularity": "mensual",
+        "minPeriodMonths": 6
+      },
+      "icon": "alert-triangle"
+    },
+    {
+      "id": "informe-ejecutivo-nacional",
+      "name": "Informe Ejecutivo Nacional",
+      "description": "Resumen ejecutivo para alta dirección. Vista panorámica de todos los indicadores de diabetes a nivel nacional.",
+      "category": "integral",
+      "audience": ["central"],
+      "requiredParams": ["periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft", "pdf"],
+      "defaultIndicators": ["incidencia", "prevalencia", "mortalidad", "hospitalizacion"],
+      "constraints": {
+        "granularity": "anual",
+        "allowedLevels": ["Nacional"]
+      },
+      "icon": "briefcase"
+    },
+    {
+      "id": "comparativa-anual-indicadores",
+      "name": "Comparativa Anual de Indicadores",
+      "description": "Análisis año vs año de todos los indicadores. Identifica mejoras y deterioros respecto al periodo anterior.",
+      "category": "comparativo",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia", "prevalencia", "mortalidad", "hospitalizacion"],
+      "constraints": {
+        "granularity": "anual",
+        "minPeriodMonths": 24
+      },
+      "icon": "calendar"
+    },
+    {
+      "id": "reporte-integral-diabetes",
+      "name": "Reporte Integral de Diabetes",
+      "description": "Análisis completo de todos los indicadores de diabetes para un ámbito específico. El más completo de los reportes.",
+      "category": "integral",
+      "audience": ["central", "ooad", "um"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft", "pdf"],
+      "defaultIndicators": ["incidencia", "prevalencia", "mortalidad", "hospitalizacion"],
+      "constraints": {},
+      "icon": "file-text"
+    },
+    {
+      "id": "prevalencia-cronico-degenerativo",
+      "name": "Prevalencia y Carga de Enfermedad",
+      "description": "Análisis de prevalencia de diabetes: pacientes activos, distribución por edad/sexo, carga sobre el sistema.",
+      "category": "prevalencia",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["prevalencia"],
+      "constraints": {
+        "granularity": "anual"
+      },
+      "icon": "users"
+    },
+    {
+      "id": "ranking-ooad-incidencia",
+      "name": "Ranking de OOADs por Incidencia",
+      "description": "Ordenamiento de todas las OOADs por tasa de incidencia. Identifica delegaciones con mayor carga de casos nuevos.",
+      "category": "comparativo",
+      "audience": ["central"],
+      "requiredParams": ["periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia"],
+      "constraints": {
+        "allowedLevels": ["OOAD"]
+      },
+      "icon": "bar-chart-2"
+    },
+    {
+      "id": "evolucion-temporal-ooad",
+      "name": "Evolución Temporal de OOAD",
+      "description": "Serie de tiempo de indicadores clave para una OOAD específica. Ideal para seguimiento longitudinal.",
+      "category": "comparativo",
+      "audience": ["ooad"],
+      "requiredParams": ["ooad", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia", "mortalidad"],
+      "constraints": {
+        "granularity": "mensual",
+        "minPeriodMonths": 12,
+        "allowedLevels": ["OOAD"]
+      },
+      "icon": "trending-up"
+    },
+    {
+      "id": "analisis-estancia-hospitalaria",
+      "name": "Análisis de Estancia Hospitalaria",
+      "description": "Detalle de días de estancia por diabetes: promedio, distribución, outliers. Para optimización de recursos.",
+      "category": "hospitalizacion",
+      "audience": ["ooad", "um"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["hospitalizacion"],
+      "constraints": {},
+      "icon": "clock"
+    },
+    {
+      "id": "piramide-poblacional-diabetes",
+      "name": "Pirámide Poblacional de Diabetes",
+      "description": "Distribución de casos por grupos de edad y sexo. Visualización tipo pirámide poblacional.",
+      "category": "integral",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["ambito", "periodo", "indicadores"],
+      "expectedOutputs": ["executiveSummary", "kpis", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia", "prevalencia"],
+      "constraints": {
+        "granularity": "anual"
+      },
+      "icon": "triangle"
+    },
+    {
+      "id": "reporte-mortalidad-evitable",
+      "name": "Reporte de Mortalidad Evitable",
+      "description": "Análisis de muertes por diabetes que podrían haberse prevenido. Enfoque en grupos de edad productiva.",
+      "category": "mortalidad",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["mortalidad"],
+      "constraints": {
+        "minPeriodMonths": 12
+      },
+      "icon": "heart"
+    },
+    {
+      "id": "tablero-control-directivo",
+      "name": "Tablero de Control Directivo",
+      "description": "KPIs principales de diabetes en formato ejecutivo. Semáforos y metas vs realidad.",
+      "category": "integral",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia", "prevalencia", "mortalidad"],
+      "constraints": {
+        "granularity": "mensual"
+      },
+      "icon": "layout-dashboard"
+    },
+    {
+      "id": "benchmark-nacional",
+      "name": "Benchmark con Media Nacional",
+      "description": "Comparación de indicadores de una OOAD/UM contra la media nacional. Identifica brechas.",
+      "category": "comparativo",
+      "audience": ["ooad", "um"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia", "prevalencia", "mortalidad"],
+      "constraints": {},
+      "icon": "target"
+    },
+    {
+      "id": "seguimiento-trimestral",
+      "name": "Seguimiento Trimestral",
+      "description": "Reporte de avance trimestral. Compara trimestre actual vs anterior y vs mismo trimestre año pasado.",
+      "category": "comparativo",
+      "audience": ["central", "ooad"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["incidencia", "mortalidad"],
+      "constraints": {
+        "granularity": "mensual",
+        "minPeriodMonths": 3
+      },
+      "icon": "calendar-check"
+    },
+    {
+      "id": "informe-complicaciones",
+      "name": "Informe de Complicaciones Hospitalarias",
+      "description": "Análisis de hospitalizaciones por complicaciones de diabetes. Enfoque en prevención secundaria.",
+      "category": "hospitalizacion",
+      "audience": ["ooad", "um"],
+      "requiredParams": ["ambito", "periodo"],
+      "expectedOutputs": ["executiveSummary", "kpis", "table", "chart", "emailDraft"],
+      "defaultIndicators": ["hospitalizacion"],
+      "constraints": {
+        "minPeriodMonths": 12
+      },
+      "icon": "alert-circle"
+    }
+  ]
+}

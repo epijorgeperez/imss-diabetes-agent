@@ -1,0 +1,227 @@
+[
+  {
+    "content": "puedes generar los egresos pero a nivel nacional, estatal y de la UMF 168 para2025 comparando con 2024",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_2ffadda1b736428884493f0c41a6c4d5",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717156936242,
+    "type": "message"
+  },
+  {
+    "arguments": "{\"sql_query\":\"SELECT Anio, 'Nacional' AS Ambito, 'Nacional' AS Nombre, SUM(Egresos_Hospitalarios) AS Total_Egresos FROM V_Agente_Hospitalizacion WHERE Anio IN (2024, 2025) AND Nivel_Jerarquico = 'Nacional' GROUP BY Anio UNION ALL SELECT Anio, 'OOAD' AS Ambito, Nombre_OOAD AS Nombre, SUM(Egresos_Hospitalarios) AS Total_Egresos FROM V_Agente_Hospitalizacion WHERE Anio IN (2024, 2025) AND Nivel_Jerarquico = 'OOAD' GROUP BY Anio, Nombre_OOAD UNION ALL SELECT H.Anio, 'Unidad Medica' AS Ambito, Cat.Nombre_Oficial AS Nombre, SUM(H.Egresos_Hospitalarios) AS Total_Egresos FROM V_Agente_Hospitalizacion H JOIN V_Agente_Catalogo_Unidades Cat ON H.Cve_Presupuestal = Cat.ClavePresupuestal WHERE H.Anio IN (2024, 2025) AND H.Nivel_Jerarquico = 'Unidad Medica' AND Cat.Nombre_Busqueda LIKE '%UMF 168%' GROUP BY H.Anio, Cat.Nombre_Oficial ORDER BY Anio, Ambito, Nombre;\"}",
+    "call_id": "call_Qz72tMagdTkZobacH3ti809V",
+    "name": "QueryDatabase",
+    "type": "function_call",
+    "id": "fc_0ab829fb12bfcb3d00697bbda6bacc81a092d0d47bc5d5755a",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_31ca8441373e41dfa3ceaca52d180d45",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717173958189
+  },
+  {
+    "call_id": "call_Qz72tMagdTkZobacH3ti809V",
+    "output": "[OK] Query executed successfully (6 filas).\n\n| Anio | Ambito | Nombre | Total_Egresos |\n| --- | --- | --- | --- |\n| 2024 | Nacional | Nacional | 41969.0 |\n| 2024 | OOAD | Jalisco | 3346.0 |\n| 2024 | Unidad Medica | UMF 168 Tepatitl\u00e1n | 51.0 |\n| 2025 | Nacional | Nacional | 38295.0 |\n| 2025 | OOAD | Jalisco | 2976.0 |\n| 2025 | Unidad Medica | UMF 168 Tepatitl\u00e1n | 42.0 |",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_31ca8441373e41dfa3ceaca52d180d45",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717173958194
+  },
+  {
+    "id": "msg_0ab829fb12bfcb3d00697bbdaf0d9881a0b6461a7696017116",
+    "content": [
+      {
+        "annotations": [],
+        "text": "A continuaci\u00f3n te presento los egresos hospitalarios por diabetes para 2024 y 2025, en los tres niveles que pediste: nacional, estatal (OOAD Jalisco) y la UMF 168 Tepatitl\u00e1n.\n\n### 1. Egresos por a\u00f1o y \u00e1mbito\n\n| A\u00f1o | \u00c1mbito          | Nombre              | Egresos totales |\n|-----|-----------------|---------------------|-----------------|\n| 2024| Nacional        | Nacional            | 41,969          |\n| 2024| OOAD            | Jalisco             | 3,346           |\n| 2024| Unidad M\u00e9dica   | UMF 168 Tepatitl\u00e1n  | 51              |\n| 2025| Nacional        | Nacional            | 38,295          |\n| 2025| OOAD            | Jalisco             | 2,976           |\n| 2025| Unidad M\u00e9dica   | UMF 168 Tepatitl\u00e1n  | 42              |\n\n### 2. Comparaci\u00f3n 2025 vs 2024 (variaci\u00f3n absoluta y porcentual)\n\nC\u00e1lculo de variaci\u00f3n porcentual:\n$$\\%\\ \\text{cambio} = \\frac{\\text{Egresos 2025} - \\text{Egresos 2024}}{\\text{Egresos 2024}} \\times 100$$\n\n| \u00c1mbito        | Nombre             | 2024 | 2025 | Cambio absoluto | Cambio % 2025 vs 2024 |\n|---------------|--------------------|------|------|-----------------|------------------------|\n| Nacional      | Nacional           | 41,969 | 38,295 | -3,674          | -8.76 %               |\n| OOAD          | Jalisco            | 3,346  | 2,976  | -370            | -11.06 %              |\n| Unidad M\u00e9dica | UMF 168 Tepatitl\u00e1n | 51    | 42    | -9              | -17.65 %              |\n\n### 3. Interpretaci\u00f3n r\u00e1pida\n\n- **Nacional:** Los egresos por diabetes disminuyen de 41,969 a 38,295, una reducci\u00f3n aproximada de **8.8 %** entre 2024 y 2025.\n- **Jalisco (OOAD):** La reducci\u00f3n es mayor que la nacional, con una ca\u00edda de **11.1 %** (de 3,346 a 2,976 egresos).\n- **UMF 168 Tepatitl\u00e1n:** Presenta la mayor reducci\u00f3n relativa, cerca de **17.7 %** (de 51 a 42 egresos), aunque en n\u00fameros absolutos son pocos casos.\n\nSi necesitas, puedo complementar con:\n- Tasas de egreso por 100,000 derechohabientes (usando la poblaci\u00f3n adscrita).\n- Desglose por sexo o grupo de edad.\n- Tendencia mensual para 2024\u20132025 en la UMF 168 o en Jalisco.",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_31ca8441373e41dfa3ceaca52d180d45",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717173958198
+  },
+  {
+    "content": "genera un reporte pdf con estos datoss incluye tablas, graficos",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_f97c834d616f4a2285d71838c628ac83",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717291561009,
+    "type": "message"
+  },
+  {
+    "arguments": "{\"code\":\"import pandas as pd\\nimport matplotlib.pyplot as plt\\nfrom EstiloInstitucional import VERDE_IMSS, DORADO_IMSS\\n\\n# Construir DataFrame con los datos de egresos\\ndata = [\\n    {\\\"Anio\\\": 2024, \\\"Ambito\\\": \\\"Nacional\\\", \\\"Nombre\\\": \\\"Nacional\\\", \\\"Total_Egresos\\\": 41969},\\n    {\\\"Anio\\\": 2024, \\\"Ambito\\\": \\\"OOAD\\\", \\\"Nombre\\\": \\\"Jalisco\\\", \\\"Total_Egresos\\\": 3346},\\n    {\\\"Anio\\\": 2024, \\\"Ambito\\\": \\\"Unidad Medica\\\", \\\"Nombre\\\": \\\"UMF 168 Tepatitl\u00e1n\\\", \\\"Total_Egresos\\\": 51},\\n    {\\\"Anio\\\": 2025, \\\"Ambito\\\": \\\"Nacional\\\", \\\"Nombre\\\": \\\"Nacional\\\", \\\"Total_Egresos\\\": 38295},\\n    {\\\"Anio\\\": 2025, \\\"Ambito\\\": \\\"OOAD\\\", \\\"Nombre\\\": \\\"Jalisco\\\", \\\"Total_Egresos\\\": 2976},\\n    {\\\"Anio\\\": 2025, \\\"Ambito\\\": \\\"Unidad Medica\\\", \\\"Nombre\\\": \\\"UMF 168 Tepatitl\u00e1n\\\", \\\"Total_Egresos\\\": 42},\\n]\\n\\ndf = pd.DataFrame(data)\\n\\n# Calcular variaciones 2025 vs 2024 por \u00e1mbito\\npivot = df.pivot_table(index=[\\\"Ambito\\\", \\\"Nombre\\\"], columns=\\\"Anio\\\", values=\\\"Total_Egresos\\\").reset_index()\\npivot[\\\"Cambio_Absoluto\\\"] = pivot[2025] - pivot[2024]\\npivot[\\\"Cambio_Porcentual\\\"] = (pivot[\\\"Cambio_Absoluto\\\"] / pivot[2024]) * 100\\n\\nprint(\\\"Tabla comparativa 2024 vs 2025:\\\\n\\\")\\nprint(pivot.to_string(index=False, float_format=lambda x: f\\\"{x:,.2f}\\\"))\\n\\n# Grafico 1: barras comparativas por \u00e1mbito\\nfig, ax = plt.subplots(figsize=(8, 5))\\nambitos = [\\\"Nacional\\\", \\\"OOAD Jalisco\\\", \\\"UMF 168\\\"]\\nval_2024 = [41969, 3346, 51]\\nval_2025 = [38295, 2976, 42]\\n\\nx = range(len(ambitos))\\nwidth = 0.35\\n\\nax.bar([i - width/2 for i in x], val_2024, width, label='2024', color=VERDE_IMSS)\\nax.bar([i + width/2 for i in x], val_2025, width, label='2025', color=DORADO_IMSS)\\n\\nax.set_xticks(list(x))\\nax.set_xticklabels(ambitos)\\nax.set_ylabel('Egresos hospitalarios por diabetes')\\nax.set_title('Comparaci\u00f3n de egresos por diabetes 2024 vs 2025\\\\nNacional, OOAD Jalisco y UMF 168')\\nax.legend()\\nplt.tight_layout()\\n\\nbar_chart_path = f\\\"{OUTPUT_DIR}/egresos_comparacion_2024_2025.png\\\"\\nplt.savefig(bar_chart_path, dpi=150)\\nplt.close()\\n\\n# Grafico 2: linea de tendencia por \u00e1mbito\\nfig, ax = plt.subplots(figsize=(8, 5))\\nfor ambito, nombre, label in [(\\\"Nacional\\\", \\\"Nacional\\\", \\\"Nacional\\\"),\\n                              (\\\"OOAD\\\", \\\"Jalisco\\\", \\\"OOAD Jalisco\\\"),\\n                              (\\\"Unidad Medica\\\", \\\"UMF 168 Tepatitl\u00e1n\\\", \\\"UMF 168\\\")]:\\n    sub = df[(df[\\\"Ambito\\\"] == ambito) & (df[\\\"Nombre\\\"] == nombre)].sort_values(\\\"Anio\\\")\\n    ax.plot(sub[\\\"Anio\\\"], sub[\\\"Total_Egresos\\\"], marker='o', label=label)\\n\\nax.set_xticks([2024, 2025])\\nax.set_xlabel('A\u00f1o')\\nax.set_ylabel('Egresos hospitalarios por diabetes')\\nax.set_title('Tendencia de egresos por diabetes 2024-2025')\\nax.legend()\\nplt.tight_layout()\\n\\nline_chart_path = f\\\"{OUTPUT_DIR}/egresos_tendencia_2024_2025.png\\\"\\nplt.savefig(line_chart_path, dpi=150)\\nplt.close()\\n\\nprint(\\\"\\\\nGraficas guardadas:\\\")\\nprint(bar_chart_path)\\nprint(line_chart_path)\\n\\n# Preparar datos de tabla para el PDF (max 6 filas)\\nresumen_tabla = [\\n    [\\\"\u00c1mbito\\\", \\\"Nombre\\\", \\\"Egresos 2024\\\", \\\"Egresos 2025\\\", \\\"Cambio abs.\\\", \\\"Cambio %\\\"],\\n]\\nfor _, row in pivot.iterrows():\\n    resumen_tabla.append([\\n        row[\\\"Ambito\\\"],\\n        row[\\\"Nombre\\\"],\\n        f\\\"{row[2024]:,.0f}\\\",\\n        f\\\"{row[2025]:,.0f}\\\",\\n        f\\\"{row['Cambio_Absoluto']:,.0f}\\\",\\n        f\\\"{row['Cambio_Porcentual']:,.2f}%\\\",\\n    ])\\n\\n# Guardar la tabla en una variable global para usarla desde el agente\\ntabla_resumen = resumen_tabla\\n\"}",
+    "call_id": "call_6AGZrlOCNw1OO6GBnLOViWZW",
+    "name": "IPythonInterpreter",
+    "type": "function_call",
+    "id": "fc_0ab829fb12bfcb3d00697bbe2d2dc081a083f4d9adc511c679",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_727ae1c4d4a04a4aa10035e6ac827580",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717348284605
+  },
+  {
+    "call_id": "call_6AGZrlOCNw1OO6GBnLOViWZW",
+    "output": "[ERROR]\nModuleNotFoundError: No module named 'EstiloInstitucional'\n",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_727ae1c4d4a04a4aa10035e6ac827580",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717348284616
+  },
+  {
+    "arguments": "{\"code\":\"import pandas as pd\\nimport matplotlib.pyplot as plt\\n\\n# Usar colores por defecto si no se puede importar EstiloInstitucional\\nVERDE_IMSS = '#006341'\\nDORADO_IMSS = '#C3922E'\\n\\n# Construir DataFrame con los datos de egresos\\ndata = [\\n    {\\\"Anio\\\": 2024, \\\"Ambito\\\": \\\"Nacional\\\", \\\"Nombre\\\": \\\"Nacional\\\", \\\"Total_Egresos\\\": 41969},\\n    {\\\"Anio\\\": 2024, \\\"Ambito\\\": \\\"OOAD\\\", \\\"Nombre\\\": \\\"Jalisco\\\", \\\"Total_Egresos\\\": 3346},\\n    {\\\"Anio\\\": 2024, \\\"Ambito\\\": \\\"Unidad Medica\\\", \\\"Nombre\\\": \\\"UMF 168 Tepatitl\u00e1n\\\", \\\"Total_Egresos\\\": 51},\\n    {\\\"Anio\\\": 2025, \\\"Ambito\\\": \\\"Nacional\\\", \\\"Nombre\\\": \\\"Nacional\\\", \\\"Total_Egresos\\\": 38295},\\n    {\\\"Anio\\\": 2025, \\\"Ambito\\\": \\\"OOAD\\\", \\\"Nombre\\\": \\\"Jalisco\\\", \\\"Total_Egresos\\\": 2976},\\n    {\\\"Anio\\\": 2025, \\\"Ambito\\\": \\\"Unidad Medica\\\", \\\"Nombre\\\": \\\"UMF 168 Tepatitl\u00e1n\\\", \\\"Total_Egresos\\\": 42},\\n]\\n\\ndf = pd.DataFrame(data)\\n\\n# Calcular variaciones 2025 vs 2024 por \u00e1mbito\\npivot = df.pivot_table(index=[\\\"Ambito\\\", \\\"Nombre\\\"], columns=\\\"Anio\\\", values=\\\"Total_Egresos\\\").reset_index()\\npivot[\\\"Cambio_Absoluto\\\"] = pivot[2025] - pivot[2024]\\npivot[\\\"Cambio_Porcentual\\\"] = (pivot[\\\"Cambio_Absoluto\\\"] / pivot[2024]) * 100\\n\\nprint(\\\"Tabla comparativa 2024 vs 2025:\\\\n\\\")\\nprint(pivot.to_string(index=False, float_format=lambda x: f\\\"{x:,.2f}\\\"))\\n\\n# Grafico 1: barras comparativas por \u00e1mbito\\nfig, ax = plt.subplots(figsize=(8, 5))\\nambitos = [\\\"Nacional\\\", \\\"OOAD Jalisco\\\", \\\"UMF 168\\\"]\\nval_2024 = [41969, 3346, 51]\\nval_2025 = [38295, 2976, 42]\\n\\nx = range(len(ambitos))\\nwidth = 0.35\\n\\nax.bar([i - width/2 for i in x], val_2024, width, label='2024', color=VERDE_IMSS)\\nax.bar([i + width/2 for i in x], val_2025, width, label='2025', color=DORADO_IMSS)\\n\\nax.set_xticks(list(x))\\nax.set_xticklabels(ambitos)\\nax.set_ylabel('Egresos hospitalarios por diabetes')\\nax.set_title('Comparaci\u00f3n de egresos por diabetes 2024 vs 2025\\\\nNacional, OOAD Jalisco y UMF 168')\\nax.legend()\\nplt.tight_layout()\\n\\nbar_chart_path = f\\\"{OUTPUT_DIR}/egresos_comparacion_2024_2025.png\\\"\\nplt.savefig(bar_chart_path, dpi=150)\\nplt.close()\\n\\n# Grafico 2: linea de tendencia por \u00e1mbito\\nfig, ax = plt.subplots(figsize=(8, 5))\\nfor ambito, nombre, label in [(\\\"Nacional\\\", \\\"Nacional\\\", \\\"Nacional\\\"),\\n                              (\\\"OOAD\\\", \\\"Jalisco\\\", \\\"OOAD Jalisco\\\"),\\n                              (\\\"Unidad Medica\\\", \\\"UMF 168 Tepatitl\u00e1n\\\", \\\"UMF 168\\\")]:\\n    sub = df[(df[\\\"Ambito\\\"] == ambito) & (df[\\\"Nombre\\\"] == nombre)].sort_values(\\\"Anio\\\")\\n    ax.plot(sub[\\\"Anio\\\"], sub[\\\"Total_Egresos\\\"], marker='o', label=label)\\n\\nax.set_xticks([2024, 2025])\\nax.set_xlabel('A\u00f1o')\\nax.set_ylabel('Egresos hospitalarios por diabetes')\\nax.set_title('Tendencia de egresos por diabetes 2024-2025')\\nax.legend()\\nplt.tight_layout()\\n\\nline_chart_path = f\\\"{OUTPUT_DIR}/egresos_tendencia_2024_2025.png\\\"\\nplt.savefig(line_chart_path, dpi=150)\\nplt.close()\\n\\nprint(\\\"\\\\nGraficas guardadas:\\\")\\nprint(bar_chart_path)\\nprint(line_chart_path)\\n\\n# Preparar datos de tabla para el PDF (max 6 filas)\\nresumen_tabla = [\\n    [\\\"\u00c1mbito\\\", \\\"Nombre\\\", \\\"Egresos 2024\\\", \\\"Egresos 2025\\\", \\\"Cambio abs.\\\", \\\"Cambio %\\\"],\\n]\\nfor _, row in pivot.iterrows():\\n    resumen_tabla.append([\\n        row[\\\"Ambito\\\"],\\n        row[\\\"Nombre\\\"],\\n        f\\\"{row[2024]:,.0f}\\\",\\n        f\\\"{row[2025]:,.0f}\\\",\\n        f\\\"{row['Cambio_Absoluto']:,.0f}\\\",\\n        f\\\"{row['Cambio_Porcentual']:,.2f}%\\\",\\n    ])\\n\\n# Guardar la tabla en una variable global para usarla desde el agente\\ntabla_resumen = resumen_tabla\\n\"}",
+    "call_id": "call_w2PxkuQz83rjnalVFaIbwB9s",
+    "name": "IPythonInterpreter",
+    "type": "function_call",
+    "id": "fc_0ab829fb12bfcb3d00697bbe3b1d9081a09506d3a827d10e56",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_727ae1c4d4a04a4aa10035e6ac827580",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717348284624
+  },
+  {
+    "call_id": "call_w2PxkuQz83rjnalVFaIbwB9s",
+    "output": "[OK] Output:\nTabla comparativa 2024 vs 2025:\n\n       Ambito             Nombre      2024      2025  Cambio_Absoluto  Cambio_Porcentual\n     Nacional           Nacional 41,969.00 38,295.00        -3,674.00              -8.75\n         OOAD            Jalisco  3,346.00  2,976.00          -370.00             -11.06\nUnidad Medica UMF 168 Tepatitl\u00e1n     51.00     42.00            -9.00             -17.65\n\nGraficas guardadas:\nC:\\Users\\jorge.perezoli.OCC\\Desktop\\proyectos\\AgenteDiabetesIMSS\\imss-diabetes-agent\\backend\\epidemiology_agent\\files\\outputs/egresos_comparacion_2024_2025.png\nC:\\Users\\jorge.perezoli.OCC\\Desktop\\proyectos\\AgenteDiabetesIMSS\\imss-diabetes-agent\\backend\\epidemiology_agent\\files\\outputs/egresos_tendencia_2024_2025.png\n\n\n**ARCHIVOS GENERADOS** (Incluye estos links en tu respuesta final):\n![Gr\u00e1fico generado](/files/outputs/egresos_comparacion_2024_2025.png)\n![Gr\u00e1fico generado](/files/outputs/egresos_tendencia_2024_2025.png)",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_727ae1c4d4a04a4aa10035e6ac827580",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717348284630
+  },
+  {
+    "arguments": "{\"titulo\":\"Egresos hospitalarios por diabetes 2024-2025: Nacional, OOAD Jalisco y UMF 168\",\"introduccion\":\"Este reporte presenta el comportamiento de los egresos hospitalarios por diabetes en el Instituto Mexicano del Seguro Social (IMSS) para los a\u00f1os 2024 y 2025, con \u00e9nfasis en tres niveles de an\u00e1lisis: \u00e1mbito nacional, la Oficina de Representaci\u00f3n Jalisco (OOAD Jalisco) y la Unidad de Medicina Familiar (UMF) 168 Tepatitl\u00e1n. El objetivo es proporcionar a los tomadores de decisi\u00f3n una visi\u00f3n comparativa de la carga de hospitalizaci\u00f3n por diabetes y su variaci\u00f3n interanual, identificando posibles \u00e1reas de mejora en la atenci\u00f3n y en las estrategias de prevenci\u00f3n y control de la enfermedad.\",\"analisis\":\"1. Resultados globales de egresos por diabetes\\n\\nEn el \u00e1mbito nacional, los egresos hospitalarios por diabetes pasaron de 41,969 en 2024 a 38,295 en 2025, lo que representa una disminuci\u00f3n absoluta de 3,674 egresos y una reducci\u00f3n relativa aproximada de 8.75%. Esta tendencia sugiere una posible contenci\u00f3n de la carga hospitalaria por diabetes, aunque es necesario interpretar estos datos en conjunto con indicadores de calidad de la atenci\u00f3n y mortalidad.\\n\\nPara la OOAD Jalisco, los egresos disminuyeron de 3,346 en 2024 a 2,976 en 2025, con una reducci\u00f3n absoluta de 370 egresos y una variaci\u00f3n relativa de -11.06%. La reducci\u00f3n es mayor que la observada a nivel nacional, lo que podr\u00eda estar asociado a mejoras en el manejo ambulatorio, fortalecimiento de programas de control metab\u00f3lico o cambios en los criterios de referencia y hospitalizaci\u00f3n.\\n\\nEn la UMF 168 Tepatitl\u00e1n, los egresos hospitalarios por diabetes pasaron de 51 en 2024 a 42 en 2025, con una disminuci\u00f3n de 9 egresos y una variaci\u00f3n relativa de -17.65%. Aunque el volumen absoluto es bajo, la reducci\u00f3n proporcional es la m\u00e1s marcada de los tres niveles analizados, lo que puede indicar un mejor control de los pacientes adscritos o cambios en los patrones de referencia hacia otros niveles de atenci\u00f3n.\\n\\n2. Comparaci\u00f3n interanual y gradiente entre niveles\\n\\nEl an\u00e1lisis comparativo muestra un gradiente consistente de reducci\u00f3n de egresos entre 2024 y 2025 en los tres niveles (nacional, estatal y unidad m\u00e9dica). La mayor reducci\u00f3n relativa se observa en la UMF 168, seguida de la OOAD Jalisco y finalmente el \u00e1mbito nacional. Este patr\u00f3n sugiere que las intervenciones locales y regionales pueden estar teniendo un impacto relevante en la disminuci\u00f3n de la necesidad de hospitalizaci\u00f3n por diabetes.\\n\\nLa gr\u00e1fica de barras comparativas ilustra claramente la diferencia de magnitud entre los niveles: el \u00e1mbito nacional concentra la mayor carga absoluta de egresos, seguido por la OOAD Jalisco y, en menor medida, la UMF 168. Sin embargo, al analizar las variaciones porcentuales, se observa que los cambios relativos son m\u00e1s pronunciados en los niveles subnacionales.\\n\\nLa gr\u00e1fica de tendencia por a\u00f1o refuerza la observaci\u00f3n de una disminuci\u00f3n sostenida entre 2024 y 2025 en los tres \u00e1mbitos. Aunque solo se cuentan con dos puntos temporales, la direcci\u00f3n del cambio es consistente y apunta hacia una reducci\u00f3n de la carga hospitalaria por diabetes.\\n\\n3. Consideraciones epidemiol\u00f3gicas y operativas\\n\\nEs importante interpretar la disminuci\u00f3n de egresos con cautela. Una reducci\u00f3n en hospitalizaciones por diabetes puede ser positiva si est\u00e1 asociada a un mejor control gluc\u00e9mico, detecci\u00f3n oportuna de complicaciones y fortalecimiento del primer nivel de atenci\u00f3n. Sin embargo, tambi\u00e9n podr\u00eda reflejar barreras de acceso, cambios en la capacidad hospitalaria o en los criterios de admisi\u00f3n.\\n\\nPara una interpretaci\u00f3n integral, se recomienda complementar este an\u00e1lisis con:\\n- Tasas de hospitalizaci\u00f3n por 100,000 derechohabientes, utilizando la poblaci\u00f3n adscrita como denominador.\\n- Indicadores de calidad de la atenci\u00f3n (reingresos, mortalidad intrahospitalaria, d\u00edas promedio de estancia).\\n- Informaci\u00f3n sobre la implementaci\u00f3n de programas de prevenci\u00f3n y control de diabetes en las unidades analizadas.\\n\\n4. S\u00edntesis num\u00e9rica de la variaci\u00f3n 2024-2025\\n\\nLa tabla de resumen incluida en este reporte presenta, para cada \u00e1mbito (Nacional, OOAD Jalisco y UMF 168 Tepatitl\u00e1n), los egresos totales en 2024 y 2025, as\u00ed como el cambio absoluto y el porcentaje de variaci\u00f3n. En t\u00e9rminos generales:\\n- Nacional: -3,674 egresos (-8.75%).\\n- OOAD Jalisco: -370 egresos (-11.06%).\\n- UMF 168 Tepatitl\u00e1n: -9 egresos (-17.65%).\\n\\nEstos resultados permiten priorizar el seguimiento en aquellos \u00e1mbitos donde la reducci\u00f3n es m\u00e1s marcada, para identificar buenas pr\u00e1cticas que puedan ser replicadas, as\u00ed como descartar que la disminuci\u00f3n se deba a problemas de acceso o subregistro.\",\"conclusiones\":\"1. Entre 2024 y 2025 se observa una disminuci\u00f3n consistente de los egresos hospitalarios por diabetes en los tres niveles analizados (nacional, OOAD Jalisco y UMF 168 Tepatitl\u00e1n), con reducciones relativas que oscilan entre -8.75% y -17.65%.\\n2. La OOAD Jalisco presenta una reducci\u00f3n de egresos mayor que la media nacional, lo que sugiere un posible impacto positivo de las estrategias regionales de prevenci\u00f3n y control de la diabetes, que amerita ser documentado y, en su caso, replicado en otras OOAD.\\n3. La UMF 168 Tepatitl\u00e1n, aunque con un volumen absoluto bajo, muestra la mayor reducci\u00f3n porcentual de egresos, lo que indica una oportunidad para analizar en detalle sus pr\u00e1cticas de manejo ambulatorio, seguimiento de pacientes cr\u00f3nicos y coordinaci\u00f3n con el segundo nivel.\\n4. La sola disminuci\u00f3n de egresos no es suficiente para concluir una mejora en la situaci\u00f3n de salud; es indispensable complementar este an\u00e1lisis con tasas ajustadas por poblaci\u00f3n, indicadores de calidad de la atenci\u00f3n y resultados en salud (mortalidad, complicaciones, reingresos).\\n5. Se recomienda establecer un monitoreo trimestral de los egresos por diabetes, incorporando tasas por 100,000 derechohabientes y desagregaci\u00f3n por sexo y grupo de edad, a fin de detectar oportunamente cambios en la demanda de hospitalizaci\u00f3n y orientar la planeaci\u00f3n de recursos y acciones preventivas.\",\"imagenes\":[\"egresos_comparacion_2024_2025.png\",\"egresos_tendencia_2024_2025.png\"],\"nombre_archivo_salida\":\"reporte_egresos_diabetes_2024_2025\"}",
+    "call_id": "call_D35v5balArD4wjfNep0zaJyu",
+    "name": "GenerateReportTool",
+    "type": "function_call",
+    "id": "fc_0ab829fb12bfcb3d00697bbe4c7c3c81a0bf1d28c5e423dd20",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_727ae1c4d4a04a4aa10035e6ac827580",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717348284636
+  },
+  {
+    "call_id": "call_D35v5balArD4wjfNep0zaJyu",
+    "output": "Reporte generado con \u00e9xito.\n\n[Descargar Reporte PDF](/files/outputs/reporte_egresos_diabetes_2024_2025.pdf)",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_727ae1c4d4a04a4aa10035e6ac827580",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717348284641
+  },
+  {
+    "id": "msg_0ab829fb12bfcb3d00697bbe61699081a0b7c036b33eba5f48",
+    "content": [
+      {
+        "annotations": [],
+        "text": "He generado el reporte PDF con tablas, an\u00e1lisis y dos gr\u00e1ficos (comparaci\u00f3n y tendencia 2024\u20132025) para:\n\n- Nacional  \n- OOAD Jalisco  \n- UMF 168 Tepatitl\u00e1n  \n\nPuedes descargarlo aqu\u00ed:\n\n[Descargar Reporte PDF](/files/outputs/reporte_egresos_diabetes_2024_2025.pdf)\n\nLas gr\u00e1ficas incluidas son:\n\n- Comparaci\u00f3n de egresos 2024 vs 2025 por \u00e1mbito  \n  ![Comparaci\u00f3n egresos 2024-2025](/files/outputs/egresos_comparacion_2024_2025.png)\n\n- Tendencia de egresos 2024\u20132025 por \u00e1mbito  \n  ![Tendencia egresos 2024-2025](/files/outputs/egresos_tendencia_2024_2025.png)\n\nSi quieres, puedo ajustar el reporte (por ejemplo, agregar tasas por 100,000 derechohabientes o desglosar por sexo/edad).",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_727ae1c4d4a04a4aa10035e6ac827580",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717348284650
+  },
+  {
+    "content": "dame las tasas de hospitalizaci\u00f3n para que sean m\u00e1s comparables entre los tres niveles",
+    "role": "user",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_36e453f24af7458bbec20ef03fad9742",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717551355533,
+    "type": "message"
+  },
+  {
+    "arguments": "{\"sql_query\":\"SELECT Anio, 'Nacional' AS Ambito, 'Nacional' AS Nombre, SUM(Egresos_Hospitalarios) AS Total_Egresos, (SELECT SUM(Poblacion_Adscrita_MF) FROM V_Agente_Poblacion_Detalle P WHERE P.Anio = H.Anio AND P.Nivel_Jerarquico = 'Nacional') AS Poblacion FROM V_Agente_Hospitalizacion H WHERE Anio IN (2024, 2025) AND Nivel_Jerarquico = 'Nacional' GROUP BY Anio UNION ALL SELECT Anio, 'OOAD' AS Ambito, Nombre_OOAD AS Nombre, SUM(Egresos_Hospitalarios) AS Total_Egresos, (SELECT SUM(Poblacion_Adscrita_MF) FROM V_Agente_Poblacion_Detalle P WHERE P.Anio = H.Anio AND P.Nombre_OOAD = H.Nombre_OOAD AND P.Nivel_Jerarquico = 'OOAD') AS Poblacion FROM V_Agente_Hospitalizacion H WHERE Anio IN (2024, 2025) AND Nivel_Jerarquico = 'OOAD' AND Nombre_OOAD = 'Jalisco' GROUP BY Anio, Nombre_OOAD UNION ALL SELECT H.Anio, 'Unidad Medica' AS Ambito, Cat.Nombre_Oficial AS Nombre, SUM(H.Egresos_Hospitalarios) AS Total_Egresos, (SELECT SUM(Poblacion_Adscrita_MF) FROM V_Agente_Poblacion_Detalle P WHERE P.Anio = H.Anio AND P.Cve_Presupuestal = Cat.ClavePresupuestal AND P.Nivel_Jerarquico = 'Unidad Medica') AS Poblacion FROM V_Agente_Hospitalizacion H JOIN V_Agente_Catalogo_Unidades Cat ON H.Cve_Presupuestal = Cat.ClavePresupuestal WHERE H.Anio IN (2024, 2025) AND H.Nivel_Jerarquico = 'Unidad Medica' AND Cat.Nombre_Busqueda LIKE '%UMF 168%' GROUP BY H.Anio, Cat.Nombre_Oficial ORDER BY Anio, Ambito, Nombre;\"}",
+    "call_id": "call_PtvpHH8lExoYVHbM82RpOEMw",
+    "name": "QueryDatabase",
+    "type": "function_call",
+    "id": "fc_0ab829fb12bfcb3d00697bbf31ef6881a09549ebaa8b3c92af",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_c00c53080a3549b4a8859569b20cbfb6",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717578418530
+  },
+  {
+    "call_id": "call_PtvpHH8lExoYVHbM82RpOEMw",
+    "output": "[ERROR] Database error [42000]: [42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Column 'V_Agente_Catalogo_Unidades.ClavePresupuestal' is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause. (8120) (SQLExecDirectW)",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_c00c53080a3549b4a8859569b20cbfb6",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717578418535
+  },
+  {
+    "arguments": "{\"sql_query\":\"SELECT Anio, 'Nacional' AS Ambito, 'Nacional' AS Nombre, SUM(Egresos_Hospitalarios) AS Total_Egresos, (SELECT SUM(Poblacion_Adscrita_MF) FROM V_Agente_Poblacion_Detalle P WHERE P.Anio = H.Anio AND P.Nivel_Jerarquico = 'Nacional') AS Poblacion FROM V_Agente_Hospitalizacion H WHERE Anio IN (2024, 2025) AND Nivel_Jerarquico = 'Nacional' GROUP BY Anio UNION ALL SELECT Anio, 'OOAD' AS Ambito, Nombre_OOAD AS Nombre, SUM(Egresos_Hospitalarios) AS Total_Egresos, (SELECT SUM(Poblacion_Adscrita_MF) FROM V_Agente_Poblacion_Detalle P WHERE P.Anio = H.Anio AND P.Nombre_OOAD = H.Nombre_OOAD AND P.Nivel_Jerarquico = 'OOAD') AS Poblacion FROM V_Agente_Hospitalizacion H WHERE Anio IN (2024, 2025) AND Nivel_Jerarquico = 'OOAD' AND Nombre_OOAD = 'Jalisco' GROUP BY Anio, Nombre_OOAD UNION ALL SELECT H.Anio, 'Unidad Medica' AS Ambito, MAX(Cat.Nombre_Oficial) AS Nombre, SUM(H.Egresos_Hospitalarios) AS Total_Egresos, (SELECT SUM(Poblacion_Adscrita_MF) FROM V_Agente_Poblacion_Detalle P WHERE P.Anio = H.Anio AND P.Cve_Presupuestal = MAX(Cat.ClavePresupuestal) AND P.Nivel_Jerarquico = 'Unidad Medica') AS Poblacion FROM V_Agente_Hospitalizacion H JOIN V_Agente_Catalogo_Unidades Cat ON H.Cve_Presupuestal = Cat.ClavePresupuestal WHERE H.Anio IN (2024, 2025) AND H.Nivel_Jerarquico = 'Unidad Medica' AND Cat.Nombre_Busqueda LIKE '%UMF 168%' GROUP BY H.Anio ORDER BY Anio, Ambito, Nombre;\"}",
+    "call_id": "call_Xx8Rhq0PmwFqEJufzv1ITp2n",
+    "name": "QueryDatabase",
+    "type": "function_call",
+    "id": "fc_0ab829fb12bfcb3d00697bbf391a3481a08b6af76a765b06e8",
+    "status": "completed",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_c00c53080a3549b4a8859569b20cbfb6",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717578418538
+  },
+  {
+    "call_id": "call_Xx8Rhq0PmwFqEJufzv1ITp2n",
+    "output": "[OK] Query executed successfully (6 filas).\n\n| Anio | Ambito | Nombre | Total_Egresos | Poblacion |\n| --- | --- | --- | --- | --- |\n| 2024 | Nacional | Nacional | 41969.0 | 55714083 |\n| 2024 | OOAD | Jalisco | 3346.0 | 4755547 |\n| 2024 | Unidad Medica | UMF 168 Tepatitl\u00e1n | 51.0 | 87404 |\n| 2025 | Nacional | Nacional | 38295.0 | 56652796 |\n| 2025 | OOAD | Jalisco | 2976.0 | 4877453 |\n| 2025 | Unidad Medica | UMF 168 Tepatitl\u00e1n | 42.0 | 90401 |",
+    "type": "function_call_output",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_c00c53080a3549b4a8859569b20cbfb6",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717578418541
+  },
+  {
+    "id": "msg_0ab829fb12bfcb3d00697bbf412a4081a087f1a2cd8ba6b1a2",
+    "content": [
+      {
+        "annotations": [],
+        "text": "Para hacer comparables los tres niveles, calculo la **tasa de hospitalizaci\u00f3n por diabetes por 100,000 derechohabientes**:\n\n$$\n\\text{Tasa} = \\frac{\\text{Egresos hospitalarios}}{\\text{Poblaci\u00f3n adscrita}} \\times 100{,}000\n$$\n\n### 1. Datos base 2024\u20132025\n\n| A\u00f1o | \u00c1mbito        | Nombre             | Egresos | Poblaci\u00f3n adscrita |\n|-----|---------------|--------------------|---------|---------------------|\n| 2024| Nacional      | Nacional           | 41,969  | 55,714,083         |\n| 2024| OOAD          | Jalisco            | 3,346   | 4,755,547          |\n| 2024| Unidad M\u00e9dica | UMF 168 Tepatitl\u00e1n | 51      | 87,404             |\n| 2025| Nacional      | Nacional           | 38,295  | 56,652,796         |\n| 2025| OOAD          | Jalisco            | 2,976   | 4,877,453          |\n| 2025| Unidad M\u00e9dica | UMF 168 Tepatitl\u00e1n | 42      | 90,401             |\n\n### 2. Tasas de hospitalizaci\u00f3n por 100,000 derechohabientes\n\nC\u00e1lculos (redondeados a 2 decimales):\n\n- **2024**\n  - Nacional:  \n    \\( \\frac{41,969}{55,714,083} \\times 100,000 \\approx 75.34 \\)\n  - OOAD Jalisco:  \n    \\( \\frac{3,346}{4,755,547} \\times 100,000 \\approx 70.37 \\)\n  - UMF 168 Tepatitl\u00e1n:  \n    \\( \\frac{51}{87,404} \\times 100,000 \\approx 58.35 \\)\n\n- **2025**\n  - Nacional:  \n    \\( \\frac{38,295}{56,652,796} \\times 100,000 \\approx 67.62 \\)\n  - OOAD Jalisco:  \n    \\( \\frac{2,976}{4,877,453} \\times 100,000 \\approx 61.02 \\)\n  - UMF 168 Tepatitl\u00e1n:  \n    \\( \\frac{42}{90,401} \\times 100,000 \\approx 46.45 \\)\n\n#### Tabla resumen de tasas\n\n| A\u00f1o | \u00c1mbito        | Nombre             | Tasa x 100,000 |\n|-----|---------------|--------------------|----------------|\n| 2024| Nacional      | Nacional           | 75.34          |\n| 2024| OOAD          | Jalisco            | 70.37          |\n| 2024| Unidad M\u00e9dica | UMF 168 Tepatitl\u00e1n | 58.35          |\n| 2025| Nacional      | Nacional           | 67.62          |\n| 2025| OOAD          | Jalisco            | 61.02          |\n| 2025| Unidad M\u00e9dica | UMF 168 Tepatitl\u00e1n | 46.45          |\n\n### 3. C\u00f3mo interpretarlo\n\n- En **ambos a\u00f1os**, la tasa de hospitalizaci\u00f3n por diabetes:\n  - Es **mayor a nivel nacional** que en Jalisco y que en la UMF 168.\n  - Disminuye de 2024 a 2025 en los tres niveles.\n- La **UMF 168** tiene la **tasa m\u00e1s baja** en ambos a\u00f1os, lo que sugiere menor carga de hospitalizaci\u00f3n relativa en su poblaci\u00f3n adscrita.\n\nSi quieres, actualizo el **PDF** incorporando estas tasas (tabla y gr\u00e1fico adicional de tasas por 100,000).",
+        "type": "output_text",
+        "logprobs": []
+      }
+    ],
+    "role": "assistant",
+    "status": "completed",
+    "type": "message",
+    "agent": "epidemiology_agent",
+    "callerAgent": null,
+    "agent_run_id": "agent_run_c00c53080a3549b4a8859569b20cbfb6",
+    "run_trace_id": "trace_9a4e2b653a3949a9a6ec801658272bed",
+    "timestamp": 1769717578418544
+  }
+]

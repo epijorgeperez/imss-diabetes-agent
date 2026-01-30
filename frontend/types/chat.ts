@@ -1,3 +1,5 @@
+import type { PackagePayload } from './package'
+
 export interface Message {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -5,6 +7,7 @@ export interface Message {
   timestamp: number
   toolCalls?: ToolCall[]
   toolResults?: ToolResult[]
+  packageData?: PackagePayload  // Structured package data for directive reports
 }
 
 export interface ToolCall {

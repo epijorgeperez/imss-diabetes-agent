@@ -52,7 +52,7 @@ def save_threads_for_chat(messages, chat_id: str):
         print(f"Warning: Could not save threads for chat_id {chat_id}: {e}")
 
 
-def create_agency(load_threads_callback=None, save_threads_callback=None):
+def create_agency(load_threads_callback=None, save_threads_callback=None, user_context=None):
     """
     Creates the IMSS Diabetes Analytical Agency.
     
@@ -63,6 +63,7 @@ def create_agency(load_threads_callback=None, save_threads_callback=None):
     Args:
         load_threads_callback: Function to load conversation history (provided by Agency Swarm)
         save_threads_callback: Function to save conversation history (provided by Agency Swarm)
+        user_context: Dict with context to share with tools (e.g., {"chat_id": "..."})
     """
     # Use provided callbacks from Agency Swarm, or fallback to no-op
     load_callback = load_threads_callback if load_threads_callback else lambda: []
@@ -74,6 +75,7 @@ def create_agency(load_threads_callback=None, save_threads_callback=None):
         shared_instructions="shared_instructions.md",
         load_threads_callback=load_callback,
         save_threads_callback=save_callback,
+        user_context=user_context or {},
     )
 
     return agency

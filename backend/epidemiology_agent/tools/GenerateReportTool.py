@@ -111,6 +111,14 @@ class PDFReporte(FPDF):
         self.set_text_color(*EstiloInstitucional.NEGRO)
         self.set_font('helvetica', '', 10)
         
+        # Limpiar texto: convertir \n literales a saltos reales y remover LaTeX
+        import re
+        cuerpo = cuerpo.replace('\\n', '\n')  # Convertir \n literal a salto real
+        cuerpo = re.sub(r'\$\$(.+?)\$\$', r'[\1]', cuerpo, flags=re.DOTALL)  # LaTeX block → [formula]
+        cuerpo = re.sub(r'\$(.+?)\$', r'[\1]', cuerpo)  # LaTeX inline → [formula]
+        cuerpo = re.sub(r'\*\*(.+?)\*\*', r'\1', cuerpo)  # Remove markdown bold
+        cuerpo = re.sub(r'\n{3,}', '\n\n', cuerpo)  # Max 2 newlines consecutivos
+        
         try:
             cuerpo = cuerpo.encode('latin-1', 'replace').decode('latin-1')
         except: pass
