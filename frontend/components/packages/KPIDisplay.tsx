@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import type { KPIItem } from '@/types/package'
-import { TrendingUp, TrendingDown, Minus, Activity, Users, Heart, Building2, BarChart2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Activity, Users, Heart, Building2, BarChart2, type LucideProps } from 'lucide-react'
 
 // IMSS Institutional Colors
 const IMSS_COLORS = {
@@ -32,8 +32,8 @@ const TREND_STYLES = {
   stable: { color: IMSS_COLORS.GRIS_TEXTO }
 }
 
-// Map icon names to components
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+// Map icon names to components (using LucideProps for proper typing)
+const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   'activity': Activity,
   'users': Users,
   'heart': Heart,

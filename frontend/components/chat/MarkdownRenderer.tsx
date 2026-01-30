@@ -241,6 +241,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
                     {title}
                   </p>
                 )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={src}
                   alt={alt || title || 'Image'}
