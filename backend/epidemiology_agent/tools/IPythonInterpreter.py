@@ -96,6 +96,11 @@ class IPythonInterpreter(BaseTool):
     - `OUTPUT_DIR`: Directorio para guardar archivos generados
     - `EstiloInstitucional`: Clase con paleta de colores IMSS (VERDE_IMSS, DORADO_IMSS, etc.)
     
+    MULTI-QUERY SUPPORT (Named Queries):
+    - `named_queries`: Dict con todas las consultas nombradas
+    - `get_query(name)`: Retorna DataFrame de una consulta específica
+    - `list_queries()`: Lista todas las consultas disponibles
+    
     Librerías pre-importadas: pandas (pd), numpy (np), matplotlib.pyplot (plt), 
     seaborn (sns), json, datetime, os.
     
@@ -103,14 +108,15 @@ class IPythonInterpreter(BaseTool):
     
     PERSISTENCIA:
     - Variables persisten entre ejecuciones de la misma conversación (chat_id)
-    - query_results se carga automáticamente si QueryDatabase se ejecutó previamente
+    - query_results y named_queries se cargan automáticamente si QueryDatabase se ejecutó previamente
     - El namespace Python se guarda/restaura entre mensajes
     
     Ejemplos de uso:
-    - Crear DataFrame: `df = pd.DataFrame(query_results)`
+    - Crear DataFrame: `df = pd.DataFrame(query_results)` (última consulta)
+    - Multi-query: `df_inc = get_query("incidencia")`, `df_mort = get_query("mortalidad")`
+    - Ver consultas disponibles: `print(list_queries())`
     - Calcular tasas: `df['tasa'] = (df['casos'] / df['poblacion']) * 100000`
     - Guardar gráfica: `plt.savefig(f'{OUTPUT_DIR}/grafica.png')`
-    - Usar colores institucionales: `plt.bar(x, y, color=EstiloInstitucional.VERDE_IMSS)`
     """
 
     code: str = Field(
@@ -147,21 +153,30 @@ class IPythonInterpreter(BaseTool):
     def _load_query_results_from_cache(self) -> tuple:
         """
         Loads query_results from disk cache if not in context.
-        Returns (results, columns, row_count) or (None, None, None) if not found.
+        Returns (results, columns, row_count, named_queries) or (None, None, None, None) if not found.
         """
         chat_id = self._get_chat_id()
         cache_file = QUERY_CACHE_DIR / f"results_{chat_id}.json"
         
         if not cache_file.exists():
-            return None, None, None
+            return None, None, None, None
         
         try:
             with open(cache_file, "r", encoding="utf-8") as f:
                 cached = json.load(f)
-            return cached.get("results"), cached.get("columns", []), cached.get("row_count", 0)
+            
+            # Load named_queries if available (new format)
+            named_queries = cached.get("named_queries", {})
+            
+            return (
+                cached.get("results"), 
+                cached.get("columns", []), 
+                cached.get("row_count", 0),
+                named_queries
+            )
         except Exception as e:
             print(f"[IPythonInterpreter] Warning: Could not load cached results: {e}")
-            return None, None, None
+            return None, None, None, None
     
     def _load_namespace_from_cache(self) -> dict:
         """
@@ -192,7 +207,8 @@ class IPythonInterpreter(BaseTool):
         # Filter to only picklable items
         serializable_items = {}
         skip_keys = {"__builtins__", "__name__", "pd", "np", "plt", "sns", "json", 
-                     "datetime", "os", "stats", "sm", "EstiloInstitucional", "OUTPUT_DIR"}
+                     "datetime", "os", "stats", "sm", "EstiloInstitucional", "OUTPUT_DIR",
+                     "get_query", "list_queries", "named_queries"}
         
         for key, value in namespace.items():
             if key in skip_keys or key.startswith("_"):
@@ -280,15 +296,18 @@ class IPythonInterpreter(BaseTool):
             
             self.context.set("python_namespace", namespace)
         
-        # Step 3: Inject query_results from context if available
+        # Step 3: Inject query_results and named_queries from context if available
         query_results = self.context.get("query_results")
+        named_queries = self.context.get("named_queries") or {}
+        
         if query_results is not None:
             namespace["query_results"] = query_results
             namespace["query_columns"] = self.context.get("query_columns", [])
             namespace["query_row_count"] = self.context.get("query_row_count", 0)
+            namespace["named_queries"] = named_queries
         else:
             # Step 3.5: If not in context, try to load from disk cache (cross-message persistence)
-            cached_results, cached_columns, cached_row_count = self._load_query_results_from_cache()
+            cached_results, cached_columns, cached_row_count, cached_named = self._load_query_results_from_cache()
             if cached_results is not None:
                 namespace["query_results"] = cached_results
                 namespace["query_columns"] = cached_columns
@@ -297,6 +316,45 @@ class IPythonInterpreter(BaseTool):
                 self.context.set("query_results", cached_results)
                 self.context.set("query_columns", cached_columns)
                 self.context.set("query_row_count", cached_row_count)
+            
+            # Load named_queries from cache
+            if cached_named:
+                named_queries = cached_named
+                self.context.set("named_queries", named_queries)
+            
+            namespace["named_queries"] = named_queries
+        
+        # Step 3.6: Inject helper functions for multi-query access
+        def get_query(name: str):
+            """
+            Retorna un DataFrame con los resultados de una consulta nombrada.
+            Uso: df = get_query("incidencia")
+            """
+            if "pd" not in namespace:
+                raise ImportError("pandas no está disponible")
+            pd = namespace["pd"]
+            
+            nq = namespace.get("named_queries", {})
+            if name not in nq:
+                available = [k for k in nq.keys() if not k.startswith("__")]
+                raise KeyError(f"Consulta '{name}' no encontrada. Disponibles: {available}")
+            
+            return pd.DataFrame(nq[name]["results"])
+        
+        def list_queries():
+            """
+            Lista todas las consultas nombradas disponibles.
+            Retorna dict con nombre -> row_count
+            """
+            nq = namespace.get("named_queries", {})
+            return {
+                k: {"row_count": v.get("row_count", 0), "columns": v.get("columns", [])}
+                for k, v in nq.items() 
+                if not k.startswith("__")
+            }
+        
+        namespace["get_query"] = get_query
+        namespace["list_queries"] = list_queries
         
         # Step 4: Execute code
         output = StringIO()
@@ -372,47 +430,103 @@ if __name__ == "__main__":
     # Create context correctly for v1.x
     master_ctx = MasterContext(user_context={}, thread_manager=None, agents={})
     
-    # Simulate query_results from QueryDatabase
-    master_ctx.set("query_results", [
-        {"Nombre_OOAD": "Jalisco", "casos": 15420, "poblacion": 3500000},
-        {"Nombre_OOAD": "CDMX Norte", "casos": 22100, "poblacion": 5200000},
-        {"Nombre_OOAD": "Nuevo León", "casos": 12300, "poblacion": 2800000},
-    ])
-    master_ctx.set("query_columns", ["Nombre_OOAD", "casos", "poblacion"])
+    # Simulate MULTIPLE named queries (incidencia, prevalencia, mortalidad)
+    named_queries = {
+        "incidencia": {
+            "results": [
+                {"Nombre_OOAD": "Jalisco", "Casos_Nuevos": 15420, "Poblacion": 3500000},
+                {"Nombre_OOAD": "CDMX Norte", "Casos_Nuevos": 22100, "Poblacion": 5200000},
+                {"Nombre_OOAD": "Nuevo León", "Casos_Nuevos": 12300, "Poblacion": 2800000},
+            ],
+            "columns": ["Nombre_OOAD", "Casos_Nuevos", "Poblacion"],
+            "row_count": 3
+        },
+        "prevalencia": {
+            "results": [
+                {"Nombre_OOAD": "Jalisco", "Pacientes": 85000, "Poblacion_Ref": 3500000},
+                {"Nombre_OOAD": "CDMX Norte", "Pacientes": 120000, "Poblacion_Ref": 5200000},
+                {"Nombre_OOAD": "Nuevo León", "Pacientes": 72000, "Poblacion_Ref": 2800000},
+            ],
+            "columns": ["Nombre_OOAD", "Pacientes", "Poblacion_Ref"],
+            "row_count": 3
+        },
+        "mortalidad": {
+            "results": [
+                {"Nombre_OOAD": "Jalisco", "Defunciones": 1542, "Poblacion": 3500000},
+                {"Nombre_OOAD": "CDMX Norte", "Defunciones": 2210, "Poblacion": 5200000},
+                {"Nombre_OOAD": "Nuevo León", "Defunciones": 1230, "Poblacion": 2800000},
+            ],
+            "columns": ["Nombre_OOAD", "Defunciones", "Poblacion"],
+            "row_count": 3
+        },
+        "__latest__": "mortalidad"
+    }
+    
+    # Set both legacy and new format
+    master_ctx.set("query_results", named_queries["mortalidad"]["results"])
+    master_ctx.set("query_columns", named_queries["mortalidad"]["columns"])
     master_ctx.set("query_row_count", 3)
+    master_ctx.set("named_queries", named_queries)
     
     ctx_wrapper = RunContextWrapper(context=master_ctx)
     
-    # Test 1: Access query_results and calculate rates
-    print("Test 1 - DataFrame y cálculo de tasas:")
+    # Test 1: List available queries
+    print("Test 1 - Listar consultas disponibles:")
     tool = IPythonInterpreter(code="""
-df = pd.DataFrame(query_results)
-df['tasa_incidencia'] = (df['casos'] / df['poblacion']) * 100000
-print(df.to_string(index=False))
+print("Consultas disponibles:")
+for name, info in list_queries().items():
+    print(f"  - {name}: {info['row_count']} filas, columnas: {info['columns']}")
 """)
     tool._context = ctx_wrapper
     print(asyncio.run(tool.run()))
     
-    # Test 2: Variable persistence
-    print("\nTest 2 - Persistencia de variables:")
-    tool2 = IPythonInterpreter(code="print(f'Total casos: {df[\"casos\"].sum():,}')")
+    # Test 2: Access multiple queries with get_query()
+    print("\nTest 2 - Acceso multi-query con get_query():")
+    tool2 = IPythonInterpreter(code="""
+df_inc = get_query("incidencia")
+df_prev = get_query("prevalencia")
+df_mort = get_query("mortalidad")
+
+print(f"Incidencia: {len(df_inc)} filas - Cols: {list(df_inc.columns)}")
+print(f"Prevalencia: {len(df_prev)} filas - Cols: {list(df_prev.columns)}")
+print(f"Mortalidad: {len(df_mort)} filas - Cols: {list(df_mort.columns)}")
+""")
     tool2._context = ctx_wrapper
     print(asyncio.run(tool2.run()))
     
-    # Test 3: Generate chart with institutional style
-    print("\nTest 3 - Generar gráfica con estilo institucional:")
+    # Test 3: Calculate rates from all three queries
+    print("\nTest 3 - Calcular tasas de los 3 indicadores:")
     tool3 = IPythonInterpreter(code="""
-plt.figure(figsize=(12, 6))
-plt.bar(df['Nombre_OOAD'], df['tasa_incidencia'])
-plt.title('Tasa de Incidencia por Delegación')
-plt.xlabel('Delegación')
-plt.ylabel('Tasa por 100,000 hab.')
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.savefig(f'{OUTPUT_DIR}/incidencia_test.png', dpi=150, bbox_inches='tight')
-plt.close()
-print(f"Gráfica guardada con colores institucionales en {OUTPUT_DIR}/incidencia_test.png")
+df_inc = get_query("incidencia")
+df_prev = get_query("prevalencia")
+df_mort = get_query("mortalidad")
+
+# Calculate rates
+df_inc['Tasa_Incidencia'] = (df_inc['Casos_Nuevos'] / df_inc['Poblacion']) * 100000
+df_prev['Prevalencia_Pct'] = (df_prev['Pacientes'] / df_prev['Poblacion_Ref']) * 100
+df_mort['Tasa_Mortalidad'] = (df_mort['Defunciones'] / df_mort['Poblacion']) * 100000
+
+# Merge into single summary
+resumen = df_inc[['Nombre_OOAD', 'Tasa_Incidencia']].copy()
+resumen['Prevalencia_Pct'] = df_prev['Prevalencia_Pct'].values
+resumen['Tasa_Mortalidad'] = df_mort['Tasa_Mortalidad'].values
+
+print("\\nResumen de indicadores por delegación:")
+print(resumen.to_string(index=False, float_format='%.2f'))
 """)
     tool3._context = ctx_wrapper
     print(asyncio.run(tool3.run()))
+    
+    # Test 4: Error handling - query not found
+    print("\nTest 4 - Manejo de error (consulta no existe):")
+    tool4 = IPythonInterpreter(code="""
+try:
+    df_fake = get_query("hospitalizaciones")
+except KeyError as e:
+    print(f"Error esperado: {e}")
+""")
+    tool4._context = ctx_wrapper
+    print(asyncio.run(tool4.run()))
+    
+    print("\n=== Tests Complete ===")
 

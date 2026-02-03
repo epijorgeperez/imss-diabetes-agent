@@ -347,9 +347,11 @@ def extract_markdown_content(response_text: str, template: dict, params: Package
     # 2. Extract KPIs - Multiple formats supported
     kpis_found = []
     
-    # Pattern 1: Structured format "**Label**\n- Valor: **X**\n- Unidad: **Y**\n- Tendencia: **Z**"
-    kpi_block_pattern = r'\d+\.\s*\*\*([^*]+)\*\*[^*]*?Valor:\s*\*\*([^*]+)\*\*[^*]*?Unidad:\s*\*\*([^*]+)\*\*(?:[^*]*?Tendencia:\s*\*\*(\w+)\*\*)?'
-    for match in re.findall(kpi_block_pattern, response_text, re.IGNORECASE | re.DOTALL):
+    # Pattern 1: Structured format "**1) Label** or **Label**\n- Valor: **X**\n- Unidad: **Y**\n- Tendencia: **Z**"
+    # Updated to handle: **1) Label** or 1. **Label** or just **Label**
+    kpi_block_pattern = r'\*\*(?:\d+\)\s*)?([^*]+?)\*\*\s*(?:\n|\r\n)?[-•]\s*Valor:\s*\*\*([^*]+)\*\*\s*(?:\n|\r\n)?[-•]\s*Unidad:\s*\*\*([^*]+)\*\*(?:\s*(?:\n|\r\n)?[-•]\s*Tendencia:\s*\*\*(\w+)\*\*)?'
+    pattern1_matches = re.findall(kpi_block_pattern, response_text, re.IGNORECASE | re.DOTALL)
+    for match in pattern1_matches:
         label, value, unit = match[0].strip(), match[1].strip(), match[2].strip()
         trend = match[3].lower() if len(match) > 3 and match[3] else "stable"
         if trend not in ["up", "down", "stable"]:
@@ -359,7 +361,8 @@ def extract_markdown_content(response_text: str, template: dict, params: Package
     # Pattern 2: Inline format "**Label**: X unidad" or "**Label** – X unidad"  
     if not kpis_found:
         inline_pattern = r'\*\*([^*]{5,60})\*\*[:\s\-–]+([0-9][0-9,\.%]+)\s*([a-záéíóúñ%/\s]{0,30}?)(?:\s*[-–]\s*|$|\n)'
-        for match in re.findall(inline_pattern, response_text, re.IGNORECASE):
+        pattern2_matches = re.findall(inline_pattern, response_text, re.IGNORECASE)
+        for match in pattern2_matches:
             label, value, unit = match[0].strip(), match[1].strip(), match[2].strip()
             # Skip if label looks like a year or is too short
             if len(label) < 5 or re.match(r'^(19|20)\d{2}$', label):
@@ -367,15 +370,29 @@ def extract_markdown_content(response_text: str, template: dict, params: Package
             kpis_found.append({"label": label[:100], "value": value, "unit": unit[:50], "trend": "stable"})
     
     # Pattern 3: Look in KPIs section specifically
+    # Updated to handle: ### 2. KPIs Clave or ## KPIs or just KPIs
     if not kpis_found:
-        kpi_section = re.search(r'(?:KPIs?|indicadores clave)[:\s]*\n([\s\S]+?)(?=\n##|\n---|\n\d+\.\s+[A-Z]|\Z)', response_text, re.IGNORECASE)
+        kpi_section = re.search(r'(?:#{1,3}\s*\d*\.?\s*)?(?:KPIs?\s*(?:Clave)?|indicadores\s*clave)[:\s]*\n([\s\S]+?)(?=\n#{2,3}\s+\d|\n---|\Z)', response_text, re.IGNORECASE)
         if kpi_section:
             section_text = kpi_section.group(1)
-            # Extract numbered items with values
-            items = re.findall(r'\d+\.\s*\*?\*?([^*\n:]+)\*?\*?[:\s\-–]*([0-9][0-9,\.%]+)\s*([^\n]{0,30})', section_text)
-            for label, value, rest in items[:5]:
-                unit = re.sub(r'\*\*.*', '', rest).strip()[:30]
-                kpis_found.append({"label": label.strip()[:100], "value": value.strip(), "unit": unit, "trend": "stable"})
+            # Pattern 3a: New structured format with **1) Label** and - Valor: **X**
+            structured_kpis = re.findall(
+                r'\*\*(?:\d+\)\s*)?([^*]+?)\*\*\s*[-•]\s*Valor:\s*\*\*([^*]+)\*\*\s*[-•]\s*Unidad:\s*\*\*([^*]+)\*\*(?:\s*[-•]\s*Tendencia:\s*\*\*(\w+)\*\*)?',
+                section_text, re.IGNORECASE | re.DOTALL
+            )
+            for match in structured_kpis[:5]:
+                label, value, unit = match[0].strip(), match[1].strip(), match[2].strip()
+                trend = match[3].lower() if len(match) > 3 and match[3] else "stable"
+                if trend not in ["up", "down", "stable"]:
+                    trend = "stable"
+                kpis_found.append({"label": label[:100], "value": value, "unit": unit[:50], "trend": trend})
+            
+            # Pattern 3b: Fallback - numbered items with inline values
+            if not kpis_found:
+                items = re.findall(r'\d+\.\s*\*?\*?([^*\n:]+)\*?\*?[:\s\-–]*([0-9][0-9,\.%]+)\s*([^\n]{0,30})', section_text)
+                for label, value, rest in items[:5]:
+                    unit = re.sub(r'\*\*.*', '', rest).strip()[:30]
+                    kpis_found.append({"label": label.strip()[:100], "value": value.strip(), "unit": unit, "trend": "stable"})
     
     result["kpis"] = kpis_found[:5]
     

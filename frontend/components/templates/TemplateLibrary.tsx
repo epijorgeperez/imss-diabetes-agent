@@ -37,8 +37,8 @@ const catalogData = {
   "templates": [
     {
       "id": "comite-incidencia-ooad",
-      "name": "Reporte de Incidencia para Comité OOAD",
-      "description": "Análisis de casos nuevos de diabetes para presentar en comité de OOAD. Incluye tendencias mensuales, comparativo con nacional y recomendaciones.",
+      "name": "Reporte de Incidencia para Jefatura de Prestaciones Médicas OOAD",
+      "description": "Análisis de casos nuevos de diabetes para presentar en Jefatura de Prestaciones Médicas de OOAD. Incluye tendencias mensuales, comparativo con nacional y recomendaciones.",
       "category": "incidencia",
       "audience": ["ooad"],
       "requiredParams": ["ambito", "periodo"],
@@ -49,7 +49,7 @@ const catalogData = {
     },
     {
       "id": "comite-incidencia-central",
-      "name": "Reporte de Incidencia para Comité Central",
+      "name": "Reporte de Incidencia para Cuerpo de Gobierno",
       "description": "Panorama nacional de incidencia de diabetes con desglose por OOAD. Para presentación ante directivos centrales.",
       "category": "incidencia",
       "audience": ["central"],

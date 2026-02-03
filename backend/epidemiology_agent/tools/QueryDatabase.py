@@ -1,6 +1,7 @@
 # QueryDatabase.py
 from agency_swarm.tools import BaseTool
 from pydantic import Field
+from typing import Optional
 import os
 import json
 import re
@@ -9,6 +10,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Counter for auto-naming queries without explicit names
+_query_counter = 0
 
 # Database connection constants from environment
 DB_SERVER = os.getenv("DB_SERVER", "11.33.41.96")
@@ -37,11 +41,22 @@ class QueryDatabase(BaseTool):
     Results are automatically:
     - Stored in shared context for immediate use with IPythonInterpreter
     - Persisted to disk by chat_id for cross-message continuity
+    
+    NAMED QUERIES (Multi-Query Support):
+    - Use `result_name` to identify each query (e.g., "incidencia", "mortalidad")
+    - Access in IPythonInterpreter: `df = get_query("incidencia")`
+    - All named queries available via `named_queries` dict
     """
     
     sql_query: str = Field(
         ..., 
         description="The SQL query to execute. Use aggregations (COUNT, SUM, GROUP BY) or TOP N."
+    )
+    
+    result_name: Optional[str] = Field(
+        default=None,
+        description="Nombre para identificar esta consulta. Ej: 'incidencia', 'mortalidad'. "
+                    "Permite acceder a resultados especificos desde IPythonInterpreter con get_query('nombre')."
     )
     
     def _get_chat_id(self) -> str:
@@ -70,24 +85,52 @@ class QueryDatabase(BaseTool):
         print("[QueryDatabase] WARNING: No chat_id found in context, using 'default'")
         return "default"
     
-    def _persist_results(self, results: list, columns: list, row_count: int):
+    def _persist_results(self, results: list, columns: list, row_count: int, query_name: str = None):
         """
         Persists query results to a JSON file for cross-message access.
+        Supports multiple named queries in the same file.
         File is stored by chat_id to ensure isolation between conversations.
         """
         chat_id = self._get_chat_id()
         cache_file = QUERY_CACHE_DIR / f"results_{chat_id}.json"
         
         try:
-            cache_data = {
+            # Load existing named queries if file exists
+            existing_data = {}
+            if cache_file.exists():
+                try:
+                    with open(cache_file, "r", encoding="utf-8") as f:
+                        existing_data = json.load(f)
+                except (json.JSONDecodeError, IOError):
+                    existing_data = {}
+            
+            # Build query entry
+            query_entry = {
                 "results": results,
                 "columns": columns,
                 "row_count": row_count,
                 "timestamp": datetime.now().isoformat(),
-                "query": self.sql_query[:500]  # Store truncated query for reference
+                "query": self.sql_query[:500]
             }
+            
+            # Store in named_queries structure
+            if "named_queries" not in existing_data:
+                existing_data["named_queries"] = {}
+            
+            # Add/update this query by name
+            name = query_name or "__latest__"
+            existing_data["named_queries"][name] = query_entry
+            existing_data["__latest__"] = name
+            
+            # Also keep legacy format for backward compatibility
+            existing_data["results"] = results
+            existing_data["columns"] = columns
+            existing_data["row_count"] = row_count
+            existing_data["timestamp"] = query_entry["timestamp"]
+            
             with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(cache_data, f, ensure_ascii=False, default=str)
+                json.dump(existing_data, f, ensure_ascii=False, default=str)
+                
         except Exception as e:
             # Non-fatal: log but don't fail the query
             print(f"[QueryDatabase] Warning: Could not persist results: {e}")
@@ -115,7 +158,7 @@ class QueryDatabase(BaseTool):
         
         return True, ""
     
-    def _format_results(self, columns: list, rows: list, row_count: int) -> str:
+    def _format_results(self, columns: list, rows: list, row_count: int, query_name: str = None) -> str:
         """
         Formats query results based on size.
         - Small results (<=50): Full markdown table
@@ -148,16 +191,19 @@ class QueryDatabase(BaseTool):
             
             sample_table = f"{header}\n{separator}\n" + "\n".join(data_rows)
             
+            # Build access hint based on whether query has a name
+            if query_name:
+                access_hint = (
+                    f"Acceso: `df = get_query('{query_name}')` o `pd.DataFrame(query_results)`"
+                )
+            else:
+                access_hint = "Acceso: `df = pd.DataFrame(query_results)`"
+            
             return (
                 f"**Dataset grande: {row_count} filas, {len(columns)} columnas**\n\n"
                 f"**Columnas:** {', '.join(columns)}\n\n"
                 f"**Muestra (primeras 5 filas):**\n{sample_table}\n\n"
-                f"Los datos completos están en `query_results`. "
-                f"Usa **IPythonInterpreter** para análisis estadístico:\n"
-                f"```python\n"
-                f"df = pd.DataFrame(query_results)\n"
-                f"print(df.describe())\n"
-                f"```"
+                f"{access_hint}"
             )
     
     def run(self):
@@ -214,18 +260,38 @@ class QueryDatabase(BaseTool):
                     for row in rows
                 ]
                 
-                # Step 9: Store results in shared context for IPythonInterpreter
+                # Step 9: Generate query name (auto-name if not provided)
+                global _query_counter
+                if self.result_name:
+                    query_name = self.result_name
+                else:
+                    _query_counter += 1
+                    query_name = f"query_{_query_counter}"
+                
+                # Step 9.1: Store results in shared context for IPythonInterpreter
                 if hasattr(self, 'context') and self.context is not None:
+                    # Legacy: query_results always has latest query (backward compatibility)
                     self.context.set("query_results", rows_as_dicts)
                     self.context.set("query_columns", columns)
                     self.context.set("query_row_count", row_count)
+                    
+                    # NEW: Store in named_queries dict for multi-query access
+                    named_queries = self.context.get("named_queries") or {}
+                    named_queries[query_name] = {
+                        "results": rows_as_dicts,
+                        "columns": columns,
+                        "row_count": row_count
+                    }
+                    named_queries["__latest__"] = query_name
+                    self.context.set("named_queries", named_queries)
                 
                 # Step 9.5: Persist results to disk for cross-message access
-                self._persist_results(rows_as_dicts, columns, row_count)
+                self._persist_results(rows_as_dicts, columns, row_count, query_name)
                 
                 # Step 10: Format and return results
-                result = self._format_results(columns, rows, row_count)
-                return f"[OK] Query executed successfully ({row_count} filas).\n\n{result}"
+                result = self._format_results(columns, rows, row_count, query_name)
+                name_info = f" [nombre: '{query_name}']" if self.result_name else ""
+                return f"[OK] Query executed successfully ({row_count} filas){name_info}.\n\n{result}"
                 
         except pyodbc.Error as e:
             error_code = e.args[0] if e.args else "Unknown"
@@ -250,25 +316,40 @@ if __name__ == "__main__":
     # Test case: Validate query validation logic
     print("=== QueryDatabase Tool Test ===\n")
     
-    # Test 2: Invalid query (no aggregation)
+    # Test 1: Invalid query (no aggregation)
     tool = QueryDatabase(sql_query="SELECT name, age FROM patients")
     result = tool.run()
-    print(f"Test 2 (No aggregation blocked): {result}\n")
+    print(f"Test 1 (No aggregation blocked): {result}\n")
     
-    # Test 3: Valid query with aggregation
+    # Test 2: Valid query with aggregation
     tool = QueryDatabase(sql_query="SELECT COUNT(*) as total, delegacion FROM morbilidad GROUP BY delegacion")
-    print(f"Test 3 (Valid aggregation query):")
+    print(f"Test 2 (Valid aggregation query):")
     print(f"  Query validation: {tool._validate_query(tool.sql_query)}\n")
     
-    # Test 4: Valid query with TOP
+    # Test 3: Valid query with TOP
     tool = QueryDatabase(sql_query="SELECT TOP 10 id, fecha FROM casos ORDER BY fecha DESC")
-    print(f"Test 4 (Valid TOP query):")
+    print(f"Test 3 (Valid TOP query):")
     print(f"  Query validation: {tool._validate_query(tool.sql_query)}\n")
     
-    # Test 5: Dangerous operation blocked
+    # Test 4: Dangerous operation blocked
     tool = QueryDatabase(sql_query="DROP TABLE patients")
     result = tool.run()
-    print(f"Test 5 (DROP blocked): {result}\n")
+    print(f"Test 4 (DROP blocked): {result}\n")
+    
+    # Test 5: Named query parameter
+    tool_named = QueryDatabase(
+        sql_query="SELECT COUNT(*) as total FROM incidencia GROUP BY ooad", 
+        result_name="incidencia"
+    )
+    print(f"Test 5 (Named query):")
+    print(f"  result_name: {tool_named.result_name}")
+    print(f"  Query validation: {tool_named._validate_query(tool_named.sql_query)}\n")
+    
+    # Test 6: Auto-naming (no result_name)
+    tool_auto = QueryDatabase(sql_query="SELECT COUNT(*) FROM mortalidad GROUP BY year")
+    print(f"Test 6 (Auto-naming):")
+    print(f"  result_name: {tool_auto.result_name} (will be auto-named as 'query_N')")
+    print(f"  Query validation: {tool_auto._validate_query(tool_auto.sql_query)}\n")
     
     print("=== Tests Complete ===")
 
