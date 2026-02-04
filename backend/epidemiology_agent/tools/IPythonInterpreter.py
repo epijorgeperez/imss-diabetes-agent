@@ -9,6 +9,16 @@ import json
 import pickle
 from pathlib import Path
 
+# Import streaming events helper - use absolute import since agency_swarm loads tools without package context
+try:
+    from epidemiology_agent.tools.streaming_events import emit_tool_start, emit_tool_end
+except ImportError:
+    try:
+        from .streaming_events import emit_tool_start, emit_tool_end
+    except ImportError:
+        def emit_tool_start(*args, **kwargs): pass
+        def emit_tool_end(*args, **kwargs): pass
+
 # Output directory for generated files
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "files", "outputs")
 
@@ -228,6 +238,12 @@ class IPythonInterpreter(BaseTool):
             print(f"[IPythonInterpreter] Warning: Could not persist namespace: {e}")
 
     async def run(self) -> str:
+        # Emit streaming event: tool started
+        chat_id = self._get_chat_id()
+        emit_tool_start(chat_id, "IPythonInterpreter", {
+            "code": self.code[:200]
+        })
+        
         # Step 1: Ensure output directory exists
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         
@@ -390,12 +406,16 @@ class IPythonInterpreter(BaseTool):
         if error:
             # Check if error is about missing query_results and provide helpful message
             if "query_results" in str(error) and "not defined" in str(error):
-                return (
+                result = (
                     f"[ERROR]\n{error}\n\n"
                     "⚠️ **query_results no está disponible.**\n"
                     "Ejecuta `QueryDatabase` primero para cargar datos de la base de datos."
                 )
-            return f"[ERROR]\n{error}"
+                emit_tool_end(chat_id, "IPythonInterpreter", result)
+                return result
+            result = f"[ERROR]\n{error}"
+            emit_tool_end(chat_id, "IPythonInterpreter", result)
+            return result
         
         if stdout:
             response_parts.append(f"[OK] Output:\n{stdout}")
@@ -420,7 +440,9 @@ class IPythonInterpreter(BaseTool):
                 else:
                     response_parts.append(f"[Descargar {f}](/files/outputs/{f})")
         
-        return "\n".join(response_parts)
+        result = "\n".join(response_parts)
+        emit_tool_end(chat_id, "IPythonInterpreter", f"Success: {len(new_files)} files generated" if new_files else "Executed")
+        return result
 
 
 if __name__ == "__main__":

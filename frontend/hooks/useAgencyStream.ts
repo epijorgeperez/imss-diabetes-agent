@@ -227,13 +227,15 @@ export function useAgencyStream() {
         // Final response with complete message
         console.log('[SSE Handler] Processing messages/final_response event:', data)
         
-        // Process new_messages array (like test-stream.html does)
+        // PRIORITY: Use final_output directly if available (most reliable)
+        const finalOutput = data.final_output || data.content
+        
+        // Process new_messages array for tool calls
+        const newToolCalls: ToolCall[] = []
+        const newToolResults: ToolResult[] = []
+        let assistantContentFromMessages = ''
+        
         if (data.new_messages && Array.isArray(data.new_messages)) {
-          // Extract all messages including tool calls and assistant message
-          let assistantContent = ''
-          const newToolCalls: ToolCall[] = []
-          const newToolResults: ToolResult[] = []
-          
           data.new_messages.forEach((msg: any) => {
             if (msg.type === 'function_call') {
               const toolName = msg.name || 'Unknown Tool'
@@ -246,13 +248,10 @@ export function useAgencyStream() {
                 timestamp: Date.now(),
               })
             } else if (msg.type === 'function_call_output') {
-              // Try to match with the corresponding tool call
               const resultToolName = msg.name || msg.tool_name || msg.function_name ||
                 (() => {
-                  // Find the most recent tool call without a matching result
                   const lastToolCall = newToolCalls[newToolCalls.length - 1]
                   if (lastToolCall) return lastToolCall.name
-                  // Or check previous state
                   const prevToolCall = state.toolCalls[state.toolCalls.length - 1]
                   if (prevToolCall && !state.toolResults.some(r => r.name === prevToolCall.name)) {
                     return prevToolCall.name
@@ -274,40 +273,42 @@ export function useAgencyStream() {
                 timestamp: Date.now(),
               })
             } else if (msg.type === 'message' && msg.role === 'assistant') {
-              assistantContent = Array.isArray(msg.content)
+              assistantContentFromMessages = Array.isArray(msg.content)
                 ? msg.content.map((c: any) => c.text || c).join('')
                 : (msg.content || '')
             }
           })
-          
-          console.log('[SSE Handler] Extracted:', {
-            contentLength: assistantContent.length,
-            toolCalls: newToolCalls.length,
-            toolResults: newToolResults.length,
-          })
-          
-          // Update state with complete message
+        }
+        
+        // Use final_output as primary source, fallback to parsed content from messages
+        const finalContent = finalOutput || assistantContentFromMessages
+        
+        console.log('[SSE Handler] Extracted:', {
+          finalOutputLength: finalOutput?.length || 0,
+          contentFromMessagesLength: assistantContentFromMessages.length,
+          toolCalls: newToolCalls.length,
+          toolResults: newToolResults.length,
+          usingFinalOutput: !!finalOutput,
+        })
+        
+        if (finalContent) {
           setState((prev) => ({
             ...prev,
-            messageChunks: assistantContent ? [assistantContent] : prev.messageChunks,
+            messageChunks: [finalContent],  // Always replace with new content
             toolCalls: newToolCalls.length > 0 ? [...prev.toolCalls, ...newToolCalls] : prev.toolCalls,
             toolResults: newToolResults.length > 0 ? [...prev.toolResults, ...newToolResults] : prev.toolResults,
             isComplete: true,
             isStreaming: false,
             currentTool: null,
           }))
-        } else if (data.final_output || data.content) {
-          // Fallback: use final_output or content directly
-          const finalContent = data.final_output || data.content
-          console.log('[SSE Handler] Using final_output/content:', finalContent?.substring(0, 100))
-          setState((prev) => ({
-            ...prev,
-            messageChunks: [finalContent],
-            isComplete: true,
-            isStreaming: false,
-          }))
         } else {
           console.warn('[SSE Handler] messages event but no content found:', data)
+          setState((prev) => ({
+            ...prev,
+            isComplete: true,
+            isStreaming: false,
+            currentTool: null,
+          }))
         }
         break
 

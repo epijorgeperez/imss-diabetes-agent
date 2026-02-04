@@ -25,6 +25,7 @@ export function ChatInterface() {
     saveSession,
     addMessage,
     loadSession,
+    updateSessionTitle,
   } = useChatHistory(chatId)
   const {
     stream,
@@ -277,6 +278,11 @@ export function ChatInterface() {
 
           setMessages((prev) => [...prev, assistantMessage])
           addMessage(assistantMessage)
+          
+          // Update session title with package name
+          if (chatId) {
+            updateSessionTitle(chatId, packagePayload.title)
+          }
 
           toast({
             title: 'Paquete generado',
@@ -294,7 +300,7 @@ export function ChatInterface() {
         setMessages((prev) => [...prev, errorMessage])
       }
     },
-    [chatId, isReady, selectedTemplate, addMessage, generatePackage, toast]
+    [chatId, isReady, selectedTemplate, addMessage, generatePackage, toast, updateSessionTitle]
   )
 
   const handleSelectChat = useCallback(

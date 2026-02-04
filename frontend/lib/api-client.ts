@@ -7,7 +7,7 @@ export const API_CONFIG = {
 
 export const ENDPOINTS = {
   getResponse: `${API_CONFIG.baseURL}/${API_CONFIG.agency}/get_response`,
-  getResponseStream: `${API_CONFIG.baseURL}/${API_CONFIG.agency}/get_response_stream`,
+  getResponseStream: `${API_CONFIG.baseURL}/${API_CONFIG.agency}/stream_response`, // Custom endpoint with real-time events
   getMetadata: `${API_CONFIG.baseURL}/${API_CONFIG.agency}/get_metadata`,
   generatePackage: `${API_CONFIG.baseURL}/${API_CONFIG.agency}/generate_package`,
   getTemplates: `${API_CONFIG.baseURL}/${API_CONFIG.agency}/templates`,

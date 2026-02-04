@@ -186,6 +186,153 @@ os.makedirs(os.path.join(files_path, "outputs"), exist_ok=True)
 app.mount("/files", StaticFiles(directory=files_path), name="files")
 logger.info(f"STATIC FILES: ✅ Serving files from {files_path}")
 
+# --- CUSTOM STREAMING WITH EVENT QUEUE ---
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel as PydanticBaseModel
+import asyncio
+import queue
+from concurrent.futures import ThreadPoolExecutor
+
+# Global event queues for streaming (thread-safe Queue)
+_streaming_queues: dict[str, queue.Queue] = {}
+_streaming_locks: dict[str, threading.Lock] = {}
+
+# Initialize streaming events module with our queues
+try:
+    from epidemiology_agent.tools.streaming_events import set_streaming_queues
+    set_streaming_queues(_streaming_queues)
+except Exception as e:
+    logger.warning(f"STREAMING: Could not initialize streaming events: {e}")
+
+class ChatRequest(PydanticBaseModel):
+    message: str
+    chat_id: str
+
+# Note: emit_tool_event is now in epidemiology_agent/tools/streaming_events.py
+
+# Note: Tool event emission is now handled directly in each tool
+# (QueryDatabase, IPythonInterpreter, SaveOutputFile) using the
+# streaming_events module.
+
+async def stream_agency_response(message: str, chat_id: str):
+    """
+    Custom streaming with real-time tool events.
+    Uses thread-safe queue and non-blocking reads.
+    """
+    import json
+    
+    def emit_sse(event_type: str, data: dict) -> str:
+        """Format SSE event"""
+        return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
+    
+    # Create queue for this chat BEFORE starting anything
+    event_queue: queue.Queue = queue.Queue()
+    _streaming_queues[chat_id] = event_queue
+    
+    # Set chat_id context for this async context
+    _chat_id_context.set(chat_id)
+    
+    # Flag to track if agency is done
+    agency_done = threading.Event()
+    agency_result = {"result": None, "error": None}
+    
+    def run_agency_sync():
+        """Run agency in worker thread"""
+        try:
+            _thread_local.chat_id = chat_id
+            agency = create_agency_with_persistence()
+            result = agency.get_response_sync(message, context_override={"chat_id": chat_id})
+            
+            if hasattr(result, 'final_output'):
+                agency_result["result"] = result.final_output
+            else:
+                agency_result["result"] = str(result)
+            
+        except Exception as e:
+            logger.error(f"STREAMING: Error in agency: {e}")
+            agency_result["error"] = str(e)
+        finally:
+            agency_done.set()
+    
+    # Start agency in background thread
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(run_agency_sync)
+    
+    try:
+        # Stream events as they arrive
+        while True:
+            try:
+                event_type, data = event_queue.get_nowait()
+            except queue.Empty:
+                if agency_done.is_set():
+                    # Agency finished, drain remaining events
+                    try:
+                        while True:
+                            event_type, data = event_queue.get_nowait()
+                            yield emit_sse(event_type, data)
+                    except queue.Empty:
+                        pass
+                    break
+                await asyncio.sleep(0.05)
+                continue
+            
+            yield emit_sse(event_type, data)
+        
+        if agency_result["error"]:
+            yield emit_sse("error", {"message": agency_result["error"]})
+        else:
+            final_output = agency_result["result"] or ""
+            
+            # Load messages to send complete context
+            thread_messages = load_threads_for_chat(chat_id)
+            new_messages = []
+            
+            # Find the index of the last matching user message
+            message_normalized = message.strip().lower()
+            last_user_idx = -1
+            for idx, msg in enumerate(thread_messages):
+                if msg.get("role") == "user":
+                    msg_content = msg.get("content", "")
+                    if isinstance(msg_content, list):
+                        msg_content = " ".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in msg_content])
+                    if msg_content.strip().lower() == message_normalized:
+                        last_user_idx = idx
+            
+            if last_user_idx >= 0:
+                new_messages = thread_messages[last_user_idx + 1:]
+            else:
+                for idx in range(len(thread_messages) - 1, -1, -1):
+                    if thread_messages[idx].get("role") == "user":
+                        new_messages = thread_messages[idx + 1:]
+                        break
+            
+            yield emit_sse("messages", {
+                "new_messages": new_messages,
+                "final_output": final_output
+            })
+            yield emit_sse("done", {})
+        
+    except Exception as e:
+        logger.error(f"STREAMING: Error in stream: {e}")
+        yield emit_sse("error", {"message": str(e)})
+        
+    finally:
+        executor.shutdown(wait=False)
+        if chat_id in _streaming_queues:
+            del _streaming_queues[chat_id]
+
+@app.post("/imss-diabetes/stream_response")
+async def stream_response_endpoint(request: ChatRequest):
+    """Custom SSE streaming endpoint with real-time tool events."""
+    return StreamingResponse(
+        stream_agency_response(request.message, request.chat_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
 # --- 6. PACKAGE GENERATION ENDPOINT ---
 
 # Load templates catalog

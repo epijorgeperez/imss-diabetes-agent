@@ -5,6 +5,7 @@
 3. **DataFrames solo de query_results o get_query()** - No construyas DataFrames con valores escritos a mano
 4. **Graficas/archivos solo de datos reales** - Todo debe originarse de `query_results`, `get_query()` o `named_queries`
 5. **Etiqueta ejemplos didacticos** - Si necesitas simular un calculo, marcalo como "[EJEMPLO DIDACTICO - NO USAR EN DECISIONES]"
+6. **NUNCA JOIN directo + SUM(Poblacion)** - Usa subconsulta escalar para poblacion (ver Regla de Oro #4). QueryDatabase bloqueara este anti-patron.
 
 ---
 

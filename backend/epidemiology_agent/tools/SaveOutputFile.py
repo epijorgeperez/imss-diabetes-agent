@@ -5,6 +5,16 @@ from typing import Literal
 import os
 import json
 
+# Import streaming events helper - use absolute import since agency_swarm loads tools without package context
+try:
+    from epidemiology_agent.tools.streaming_events import emit_tool_start, emit_tool_end
+except ImportError:
+    try:
+        from .streaming_events import emit_tool_start, emit_tool_end
+    except ImportError:
+        def emit_tool_start(*args, **kwargs): pass
+        def emit_tool_end(*args, **kwargs): pass
+
 # Output directory for generated files
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "files", "outputs")
 
@@ -38,7 +48,21 @@ class SaveOutputFile(BaseTool):
         description="Si es True, incluye metadatos (fecha, número de filas, columnas) en el nombre del archivo."
     )
 
+    def _get_chat_id(self) -> str:
+        """Get chat_id from context for streaming events."""
+        if not hasattr(self, 'context') or self.context is None:
+            return "default"
+        chat_id = self.context.get("chat_id")
+        return chat_id if chat_id else "default"
+
     def run(self) -> str:
+        # Emit streaming event: tool started
+        chat_id = self._get_chat_id()
+        emit_tool_start(chat_id, "SaveOutputFile", {
+            "filename": self.filename,
+            "format": self.format
+        })
+        
         # Step 1: Ensure output directory exists
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         
@@ -53,7 +77,9 @@ class SaveOutputFile(BaseTool):
             row_count = self.context.get("query_row_count", 0)
         
         if not query_results:
-            return "[ERROR] No hay datos en `query_results`. Ejecuta primero una consulta con QueryDatabase."
+            result = "[ERROR] No hay datos en `query_results`. Ejecuta primero una consulta con QueryDatabase."
+            emit_tool_end(chat_id, "SaveOutputFile", result)
+            return result
         
         # Step 3: Build filename with optional metadata
         from datetime import datetime
@@ -81,10 +107,14 @@ class SaveOutputFile(BaseTool):
                 filepath = os.path.join(OUTPUT_DIR, f"{safe_filename}.json")
                 self._save_json(query_results, filepath)
             
-            return f"[OK] Archivo guardado exitosamente:\nRuta: {filepath}\nDatos: {row_count} filas, {len(query_columns)} columnas"
+            result = f"[OK] Archivo guardado exitosamente:\nRuta: {filepath}\nDatos: {row_count} filas, {len(query_columns)} columnas"
+            emit_tool_end(chat_id, "SaveOutputFile", f"Saved: {filepath}")
+            return result
             
         except Exception as e:
-            return f"[ERROR] Error al guardar archivo: {str(e)}"
+            result = f"[ERROR] Error al guardar archivo: {str(e)}"
+            emit_tool_end(chat_id, "SaveOutputFile", result)
+            return result
     
     def _save_csv(self, data: list, columns: list, filepath: str):
         """Save data as CSV file."""

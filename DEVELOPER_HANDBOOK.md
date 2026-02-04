@@ -42,20 +42,58 @@ Un **agente de IA autónomo** que permite a usuarios del IMSS consultar datos ep
 
 ### Flujo de Datos Simplificado
 
+**Modo Exploratorio (con streaming):**
 ```
-Usuario pregunta → Frontend → Backend → Agente IA decide:
+Usuario pregunta → Frontend → Backend (/stream_response) → Agente IA decide:
                                               │
                     ┌─────────────────────────┼─────────────────────────┐
                     ▼                         ▼                         ▼
             QueryDatabase             IPythonInterpreter          GenerateReport
             (consulta SQL)            (análisis + gráficas)       (PDF)
+            [result_name]             [get_query(name)]
+                    │                         │                         │
+                    │ emit_tool_start/end     │ emit_tool_start/end     │
+                    │         ↓               │         ↓               │
+                    │    SSE Stream            │    SSE Stream            │
+                    │         ↓               │         ↓               │
+                    └─────────┼───────────────┼─────────┘
+                              ▼
+                    Frontend muestra tool calls en tiempo real
+                              │
+                              ▼
+                    Respuesta estructurada (SSE)
+                              │
+                              ▼
+                    Frontend renderiza mensaje final
+```
+
+**Modo Paquete Directivo:**
+```
+Usuario selecciona plantilla → Frontend → Backend (/generate_package) → Agente IA
+                                              │
+                    ┌─────────────────────────┼─────────────────────────┐
+                    ▼                         ▼                         ▼
+            QueryDatabase             IPythonInterpreter          GenerateReport
+            (consulta SQL)            (análisis + gráficas)       (PDF)
+            [result_name]             [get_query(name)]
                     │                         │                         │
                     └─────────────────────────┼─────────────────────────┘
                                               ▼
-                                    Respuesta estructurada
+                                    Respuesta estructurada (JSON)
                                               │
                                               ▼
-                              Frontend renderiza (chat o PackageCard)
+                              Frontend renderiza PackageCard
+```
+
+**Multi-Query Flow:**
+```
+QueryDatabase(result_name="incidencia") → named_queries["incidencia"]
+QueryDatabase(result_name="mortalidad") → named_queries["mortalidad"]
+                        │
+                        ▼
+IPythonInterpreter: df_inc = get_query("incidencia")
+                    df_mort = get_query("mortalidad")
+                    # Análisis con ambos DataFrames
 ```
 
 ---
@@ -122,6 +160,7 @@ imss-diabetes-agent/
 | Cómo responde el agente, su personalidad, reglas | `backend/epidemiology_agent/instructions.md` |
 | Qué modelo de IA usa (GPT-4, etc.) | `backend/epidemiology_agent/epidemiology_agent.py` |
 | Consultas SQL permitidas/bloqueadas | `backend/epidemiology_agent/tools/QueryDatabase.py` |
+| Sistema multi-query (named_queries) | `backend/epidemiology_agent/tools/QueryDatabase.py` + `IPythonInterpreter.py` |
 | Formato de gráficas (colores, estilos) | `backend/epidemiology_agent/tools/IPythonInterpreter.py` |
 | Diseño del PDF (logos, colores IMSS) | `backend/epidemiology_agent/tools/GenerateReportTool.py` |
 
@@ -287,10 +326,39 @@ def extract_markdown_content(response_text: str, template: dict, params: Package
 
 | Endpoint | Método | Descripción |
 |----------|--------|-------------|
-| `/imss-diabetes/get_response_stream` | POST | Chat con streaming (SSE) |
+| `/imss-diabetes/stream_response` | POST | Chat exploratorio con streaming en tiempo real de tool calls (SSE) |
+| `/imss-diabetes/get_response_stream` | POST | Chat con streaming (SSE) - endpoint legacy de Agency Swarm |
 | `/imss-diabetes/generate_package` | POST | Genera paquete directivo |
 | `/imss-diabetes/templates` | GET | Catálogo de plantillas |
 | `/files/outputs/*` | GET | Archivos estáticos (gráficas, CSV) |
+
+### Ejemplo de Request para Streaming Exploratorio
+
+```javascript
+POST /imss-diabetes/stream_response
+{
+  "message": "Calcula la incidencia de diabetes en Jalisco 2024",
+  "chat_id": "uuid-de-sesion"
+}
+```
+
+**Respuesta (SSE - Server-Sent Events):**
+```
+event: function_call
+data: {"name": "QueryDatabase", "arguments": {"sql_query": "SELECT ...", "result_name": "incidencia"}}
+
+event: function_call_output
+data: {"name": "QueryDatabase", "output": "Success: 35 rows"}
+
+event: function_call
+data: {"name": "IPythonInterpreter", "arguments": {"code": "df = get_query('incidencia')..."}}
+
+event: messages
+data: {"new_messages": [...], "final_output": "La incidencia de diabetes..."}
+
+event: done
+data: {}
+```
 
 ### Ejemplo de Request para Paquete
 
@@ -320,9 +388,9 @@ El agente tiene acceso a estas herramientas que puede invocar autónomamente:
 
 | Herramienta | Archivo | Función |
 |-------------|---------|---------|
-| `QueryDatabase` | `tools/QueryDatabase.py` | Ejecuta SELECT en SQL Server |
+| `QueryDatabase` | `tools/QueryDatabase.py` | Ejecuta SELECT en SQL Server. Soporta `result_name` para multi-query |
 | `GetDatabaseSchema` | `tools/GetDatabaseSchema.py` | Obtiene estructura de tablas |
-| `IPythonInterpreter` | `tools/IPythonInterpreter.py` | Ejecuta código Python (análisis, gráficas) |
+| `IPythonInterpreter` | `tools/IPythonInterpreter.py` | Ejecuta código Python. Acceso multi-query con `get_query()` |
 | `SaveOutputFile` | `tools/SaveOutputFile.py` | Guarda CSV/Excel |
 | `GenerateReportTool` | `tools/GenerateReportTool.py` | Genera PDF institucional |
 | `LoadImages` | `tools/LoadImages.py` | Carga imágenes generadas |
@@ -331,10 +399,21 @@ El agente tiene acceso a estas herramientas que puede invocar autónomamente:
 
 1. Crear archivo en `backend/epidemiology_agent/tools/MiNuevaHerramienta.py`
 2. Heredar de `BaseTool` (Agency Swarm)
+3. **(Opcional)** Agregar streaming de eventos para mostrar ejecución en tiempo real
 
 ```python
 from agency_swarm.tools import BaseTool
 from pydantic import Field
+
+# Import streaming events (usa import absoluto)
+try:
+    from epidemiology_agent.tools.streaming_events import emit_tool_start, emit_tool_end
+except ImportError:
+    try:
+        from .streaming_events import emit_tool_start, emit_tool_end
+    except ImportError:
+        def emit_tool_start(*args, **kwargs): pass
+        def emit_tool_end(*args, **kwargs): pass
 
 class MiNuevaHerramienta(BaseTool):
     """
@@ -343,13 +422,126 @@ class MiNuevaHerramienta(BaseTool):
     parametro1: str = Field(..., description="Descripción del parámetro")
     parametro2: int = Field(default=10, description="Parámetro opcional")
 
+    def _get_chat_id(self) -> str:
+        """Obtiene chat_id del contexto para streaming."""
+        if not hasattr(self, 'context') or self.context is None:
+            return "default"
+        return self.context.get("chat_id") or "default"
+
     def run(self):
-        # Lógica de la herramienta
-        resultado = hacer_algo(self.parametro1, self.parametro2)
-        return f"Resultado: {resultado}"
+        # Emitir evento de inicio (streaming)
+        chat_id = self._get_chat_id()
+        emit_tool_start(chat_id, "MiNuevaHerramienta", {
+            "parametro1": self.parametro1[:200],
+            "parametro2": self.parametro2
+        })
+        
+        try:
+            # Lógica de la herramienta
+            resultado = hacer_algo(self.parametro1, self.parametro2)
+            
+            # Emitir evento de finalización (streaming)
+            emit_tool_end(chat_id, "MiNuevaHerramienta", resultado)
+            
+            return f"Resultado: {resultado}"
+        except Exception as e:
+            emit_tool_end(chat_id, "MiNuevaHerramienta", f"Error: {str(e)}")
+            raise
 ```
 
-3. Agency Swarm auto-descubre herramientas en la carpeta `tools/`
+4. Agency Swarm auto-descubre herramientas en la carpeta `tools/`
+
+**Nota:** El streaming es opcional pero recomendado para herramientas que tardan tiempo en ejecutarse (consultas SQL, análisis Python, etc.). El frontend mostrará las tool calls en tiempo real mientras se ejecutan.
+
+### Streaming de Tool Calls en Tiempo Real
+
+El sistema permite mostrar las ejecuciones de herramientas en tiempo real en el frontend usando **Server-Sent Events (SSE)**.
+
+**Arquitectura:**
+
+```
+Tool ejecuta → streaming_events.py → Queue por chat_id → SSE Stream → Frontend
+```
+
+**Componentes:**
+
+1. **`streaming_events.py`** - Módulo central para emitir eventos
+   - `emit_tool_start(chat_id, tool_name, arguments)` - Emite cuando una tool inicia
+   - `emit_tool_end(chat_id, tool_name, output)` - Emite cuando una tool termina
+   - Usa una queue global (`_streaming_queues`) indexada por `chat_id`
+
+2. **`main.py`** - Endpoint `/imss-diabetes/stream_response`
+   - Crea una queue por `chat_id` antes de ejecutar el agente
+   - Ejecuta el agente en un thread separado
+   - Lee eventos de la queue y los envía como SSE
+   - Limpia la queue al finalizar
+
+3. **Tools** - `QueryDatabase`, `IPythonInterpreter`, `SaveOutputFile`
+   - Importan `emit_tool_start` y `emit_tool_end`
+   - Llaman estas funciones al inicio y fin de `run()`
+   - Usan `_get_chat_id()` para obtener el `chat_id` del contexto
+
+**Eventos SSE emitidos:**
+
+- `function_call` - Cuando una tool inicia (contiene `name` y `arguments`)
+- `function_call_output` - Cuando una tool termina (contiene `name` y `output`)
+- `messages` - Mensajes finales del agente
+- `done` - Señal de finalización
+
+**Cómo funciona:**
+
+```python
+# En main.py
+_streaming_queues[chat_id] = queue.Queue()  # Crear queue
+
+# En tool (QueryDatabase.py)
+emit_tool_start(chat_id, "QueryDatabase", {"sql_query": "SELECT ..."})
+# ... ejecutar query ...
+emit_tool_end(chat_id, "QueryDatabase", "Success: 35 rows")
+
+# En main.py (loop SSE)
+event_type, data = event_queue.get_nowait()
+yield emit_sse(event_type, data)  # Enviar al frontend
+```
+
+**Importante:** 
+- El import debe ser **absoluto** (`from epidemiology_agent.tools.streaming_events`) porque Agency Swarm carga tools sin contexto de paquete
+- El `chat_id` se obtiene del `MasterContext` usando `self.context.get("chat_id")`
+- La queue se limpia automáticamente al finalizar la respuesta
+
+### Sistema Multi-Query (Named Queries)
+
+Permite ejecutar múltiples consultas SQL y acceder a cada una por nombre:
+
+```python
+# Agente ejecuta consultas con nombres
+QueryDatabase(sql_query="SELECT ... incidencia", result_name="incidencia")
+QueryDatabase(sql_query="SELECT ... mortalidad", result_name="mortalidad")
+
+# En IPythonInterpreter
+df_inc = get_query("incidencia")   # DataFrame de incidencia
+df_mort = get_query("mortalidad")  # DataFrame de mortalidad
+print(list_queries())              # Ver todas las disponibles
+```
+
+**Variables inyectadas en IPythonInterpreter:**
+
+| Variable | Tipo | Descripción |
+|----------|------|-------------|
+| `query_results` | list[dict] | Última consulta (legacy) |
+| `named_queries` | dict | Todas las consultas nombradas |
+| `get_query(name)` | function | Retorna DataFrame por nombre |
+| `list_queries()` | function | Lista consultas disponibles |
+
+### Reglas Anti-Datos-Sintéticos
+
+El agente tiene **hard constraints** en `instructions.md`:
+
+1. **PROHIBIDO** generar datos sintéticos para cifras reales
+2. Si faltan datos → decir explícitamente "No hay datos suficientes"
+3. DataFrames **solo** de `query_results` o `get_query()`
+4. Gráficas/archivos **solo** de datos reales
+5. Ejemplos didácticos deben marcarse como `[EJEMPLO DIDÁCTICO]`
 
 ---
 
@@ -448,6 +640,50 @@ python backend/epidemiology_agent/tools/QueryDatabase.py
 - Abrir DevTools (F12) → Console
 - Network tab para ver requests/responses
 
+### Debugging del Streaming de Tool Calls
+
+**1. Verificar que los eventos se emiten:**
+
+```python
+# En streaming_events.py, agregar logging temporal:
+def emit_tool_start(chat_id: str, tool_name: str, arguments: dict):
+    logger.info(f"STREAMING: emit_tool_start - tool={tool_name}, chat_id={chat_id[:8]}")
+    # ... resto del código
+```
+
+**2. Verificar que la queue existe:**
+
+```python
+# En main.py, antes de ejecutar el agente:
+logger.info(f"STREAMING: Queue created for {chat_id[:8]}, exists: {chat_id in _streaming_queues}")
+```
+
+**3. Verificar eventos en el frontend:**
+
+- Abrir DevTools → Network tab
+- Filtrar por "stream_response" o "event-stream"
+- Verificar que los eventos SSE llegan en tiempo real:
+  - `event: function_call`
+  - `event: function_call_output`
+  - `event: messages`
+
+**4. Problemas comunes:**
+
+- **Tool calls no aparecen hasta el final:** Verificar que el import es absoluto (`from epidemiology_agent.tools.streaming_events`)
+- **Queue no encontrada:** Verificar que `chat_id` se pasa correctamente y que la queue se crea antes de ejecutar el agente
+- **Import falla:** Limpiar cache de Python: `rm -rf **/__pycache__` y `rm -rf **/*.pyc`
+
+**5. Probar streaming manualmente:**
+
+```bash
+# Usar curl para ver eventos SSE en tiempo real
+curl -N -X POST http://localhost:8001/imss-diabetes/stream_response \
+  -H "Content-Type: application/json" \
+  -d '{"message": "dame incidencia de diabetes", "chat_id": "test-123"}'
+```
+
+Deberías ver eventos SSE apareciendo conforme se ejecutan las tools.
+
 ---
 
 ## 10. Flujo de Generación de Paquete (Detallado)
@@ -505,8 +741,9 @@ El sistema tiene **tres niveles de persistencia**, cada uno con un propósito di
 │  2. QUERY CACHE (Resultados de SQL)                                 │
 │     📁 backend/epidemiology_agent/files/query_cache/                │
 │     • results_{chat_id}.json                                        │
-│     • Última consulta SQL ejecutada                                 │
-│     • Usado por IPythonInterpreter para acceder a `query_results`   │
+│     • Contiene `named_queries` dict + última consulta (legacy)      │
+│     • Usado por IPythonInterpreter para `get_query()` y             │
+│       `query_results`                                               │
 │                                                                     │
 │  3. NAMESPACE CACHE (Variables Python)                              │
 │     📁 backend/epidemiology_agent/files/namespace_cache/            │
@@ -571,17 +808,31 @@ Thread State
 
 ```json
 [
-  {"role": "user", "content": "Dame incidencia de Jalisco 2024"},
+  {"role": "user", "content": "Dame incidencia y mortalidad de Jalisco 2024"},
   {
     "type": "function_call",
     "name": "QueryDatabase",
-    "arguments": "{\"sql_query\": \"SELECT ...\"}"
+    "arguments": "{\"sql_query\": \"SELECT ...\", \"result_name\": \"incidencia\"}"
   },
   {
     "type": "function_call_output",
-    "output": "[OK] Query executed (35 filas).\n\n| OOAD | Casos | Tasa |..."
+    "output": "[OK] Query executed (35 filas) [nombre: 'incidencia'].\n\n..."
   },
-  {"role": "assistant", "content": "La incidencia en Jalisco..."}
+  {
+    "type": "function_call",
+    "name": "QueryDatabase",
+    "arguments": "{\"sql_query\": \"SELECT ...\", \"result_name\": \"mortalidad\"}"
+  },
+  {
+    "type": "function_call_output",
+    "output": "[OK] Query executed (35 filas) [nombre: 'mortalidad'].\n\n..."
+  },
+  {
+    "type": "function_call",
+    "name": "IPythonInterpreter",
+    "arguments": "{\"code\": \"df_inc = get_query('incidencia')\\ndf_mort = get_query('mortalidad')\\n...\"}"
+  },
+  {"role": "assistant", "content": "La incidencia y mortalidad en Jalisco..."}
 ]
 ```
 
@@ -671,6 +922,10 @@ ls backend/epidemiology_agent/files/query_cache/
 
 ls backend/files/thread_state/
 # Esperado: messages_abc123.json, messages_def456.json, ...
+
+# Ver contenido de query cache (ahora con named_queries)
+cat backend/epidemiology_agent/files/query_cache/results_{chat_id}.json | jq '.named_queries | keys'
+# Esperado: ["incidencia", "mortalidad", "__latest__"]
 ```
 
 **3. Inspeccionar thread state:**
