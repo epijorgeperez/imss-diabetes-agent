@@ -27,7 +27,7 @@ export function useAgencyStream() {
 
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const stream = useCallback(async (message: string, chatId: string) => {
+  const stream = useCallback(async (message: string, chatId: string, userEmail?: string) => {
     // Reset state
     setState({
       isStreaming: true,
@@ -51,13 +51,16 @@ export function useAgencyStream() {
     }
 
     try {
+      const payload: Record<string, string> = { message, chat_id: chatId }
+      if (userEmail) payload.user_email = userEmail
+
       console.log('[SSE] Sending request to:', ENDPOINTS.getResponseStream)
       console.log('[SSE] Payload:', { message: message.substring(0, 50), chat_id: chatId })
       
       const response = await fetch(ENDPOINTS.getResponseStream, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ message, chat_id: chatId }),
+        body: JSON.stringify(payload),
         signal: abortControllerRef.current.signal,
       })
 
@@ -292,15 +295,22 @@ export function useAgencyStream() {
         })
         
         if (finalContent) {
-          setState((prev) => ({
-            ...prev,
-            messageChunks: [finalContent],  // Always replace with new content
-            toolCalls: newToolCalls.length > 0 ? [...prev.toolCalls, ...newToolCalls] : prev.toolCalls,
-            toolResults: newToolResults.length > 0 ? [...prev.toolResults, ...newToolResults] : prev.toolResults,
-            isComplete: true,
-            isStreaming: false,
-            currentTool: null,
-          }))
+          setState((prev) => {
+            // If we got new tool calls from the final response, REPLACE the streaming ones
+            // (streaming tool calls are often partial/incomplete)
+            const finalToolCalls = newToolCalls.length > 0 ? newToolCalls : prev.toolCalls
+            const finalToolResults = newToolResults.length > 0 ? newToolResults : prev.toolResults
+            
+            return {
+              ...prev,
+              messageChunks: [finalContent],  // Always replace with new content
+              toolCalls: finalToolCalls,
+              toolResults: finalToolResults,
+              isComplete: true,
+              isStreaming: false,
+              currentTool: null,
+            }
+          })
         } else {
           console.warn('[SSE Handler] messages event but no content found:', data)
           setState((prev) => ({

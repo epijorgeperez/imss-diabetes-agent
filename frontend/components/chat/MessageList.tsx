@@ -60,12 +60,12 @@ export function MessageList({
 
         {isStreaming && (
           <div className="flex gap-4">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarFallback className="bg-primary text-primary-foreground">
                 <Bot className="h-4 w-4" />
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 space-y-2 min-w-0 overflow-hidden">
+            <div className="flex-1 space-y-2 min-w-0">
               {streamingToolCalls && streamingToolCalls.length > 0 && (
                 <div className="space-y-2">
                   {streamingToolCalls.map((tool, idx) => {
@@ -82,7 +82,7 @@ export function MessageList({
                 <div className="rounded-lg border bg-muted/50 p-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>C Ejecutando: {currentTool}</span>
+                    <span>🔧 Ejecutando: {currentTool}</span>
                   </div>
                 </div>
               )}
@@ -217,9 +217,54 @@ function MessageItem({ message }: { message: Message }) {
   )
 }
 
+/**
+ * Detect the language of a tool argument value for syntax highlighting.
+ * Returns 'sql', 'python', 'json', or null for plain text.
+ */
+function detectArgLanguage(key: string, value: string): 'sql' | 'python' | 'json' | null {
+  const lowerKey = key.toLowerCase()
+  
+  // SQL detection
+  const sqlKeys = ['sql_query', 'query', 'sql']
+  if (sqlKeys.includes(lowerKey)) return 'sql'
+  const trimmedUpper = value.trim().toUpperCase()
+  if (/^(SELECT|WITH|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/.test(trimmedUpper)) return 'sql'
+  
+  // Python/code detection
+  const codeKeys = ['code', 'python_code', 'script', 'python', 'python_script']
+  if (codeKeys.includes(lowerKey)) return 'python'
+  // Heuristic: if it has import statements or def/class keywords, it's Python
+  const trimmed = value.trim()
+  if (/^(import |from |def |class |print\(|#\s)/.test(trimmed)) return 'python'
+  
+  // JSON detection (for string values that look like JSON)
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      JSON.parse(trimmed)
+      return 'json'
+    } catch {
+      // not JSON
+    }
+  }
+  
+  return null
+}
+
 function ToolCallItem({ tool, isExecuting = false }: { tool: ToolCall; isExecuting?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const hasArgs = tool.arguments && Object.keys(tool.arguments).length > 0
+
+  const handleCopyValue = async (key: string, value: string) => {
+    await navigator.clipboard.writeText(value)
+    setCopiedKey(key)
+    setTimeout(() => setCopiedKey(null), 2000)
+  }
+
+  // Parse arguments into renderable entries
+  const entries = hasArgs
+    ? Object.entries(tool.arguments as Record<string, unknown>)
+    : []
 
   return (
     <div className="rounded-lg border bg-muted/50 overflow-hidden">
@@ -238,27 +283,61 @@ function ToolCallItem({ tool, isExecuting = false }: { tool: ToolCall; isExecuti
           ) : (
             <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           )}
-          <span className="font-medium text-muted-foreground">C Ejecutando: {tool.name}</span>
+          <span className="font-medium text-muted-foreground">🔧 Ejecutando: {tool.name}</span>
         </div>
       </button>
       {isExpanded && hasArgs && (
-        <div className="border-t border-border p-3 bg-background/50">
-          <div className="text-xs font-medium text-muted-foreground mb-2">Argumentos:</div>
-          <div className="rounded overflow-auto max-h-96">
-            <SyntaxHighlighter
-              language="json"
-              style={vscDarkPlus}
-              customStyle={{
-                margin: 0,
-                padding: '0.75rem',
-                fontSize: '0.75rem',
-                borderRadius: '0.375rem',
-              }}
-              wrapLongLines={true}
-            >
-              {JSON.stringify(tool.arguments, null, 2)}
-            </SyntaxHighlighter>
-          </div>
+        <div className="border-t border-border bg-background/50 px-3 py-3 space-y-3">
+          {entries.map(([key, value]) => {
+            const strValue = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+            const lang = typeof value === 'string' 
+              ? detectArgLanguage(key, value) 
+              : (typeof value === 'object' ? 'json' : null)
+
+            return (
+              <div key={key}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {key}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => handleCopyValue(key, strValue)}
+                  >
+                    {copiedKey === key ? (
+                      <Check className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+                {lang ? (
+                  <div className="rounded-md overflow-x-auto overflow-y-auto max-h-[500px] border border-border/50">
+                    <SyntaxHighlighter
+                      language={lang}
+                      style={vscDarkPlus}
+                      customStyle={{
+                        margin: 0,
+                        padding: '0.75rem',
+                        fontSize: '0.8rem',
+                        borderRadius: '0.375rem',
+                      }}
+                      wrapLongLines={true}
+                      showLineNumbers={lang !== 'json'}
+                    >
+                      {strValue}
+                    </SyntaxHighlighter>
+                  </div>
+                ) : (
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
+                    {strValue}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
@@ -267,6 +346,7 @@ function ToolCallItem({ tool, isExecuting = false }: { tool: ToolCall; isExecuti
 
 function ToolResultItem({ result }: { result: { name: string; output: unknown } }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [copied, setCopied] = useState(false)
   
   // Safely convert output to string
   const outputString = (() => {
@@ -301,46 +381,76 @@ function ToolResultItem({ result }: { result: { name: string; output: unknown } 
 
   const language = hasOutput ? detectLanguage(outputString) : 'text'
 
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(outputString)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="rounded-lg border bg-muted/30 overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full p-3 text-left hover:bg-muted/50 transition-colors"
       >
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {isExpanded ? (
-            <ChevronDown className="h-3 w-3 flex-shrink-0" />
+            <ChevronDown className="h-4 w-4 flex-shrink-0" />
           ) : (
-            <ChevronRight className="h-3 w-3 flex-shrink-0" />
+            <ChevronRight className="h-4 w-4 flex-shrink-0" />
           )}
-          <span className="font-medium">{result.name}</span>
-          <span>completado</span>
+          <span className="font-medium">✅ {result.name}</span>
+          <span className="text-xs">completado</span>
         </div>
       </button>
       {isExpanded && hasOutput && (
-        <div className="border-t border-border p-3 bg-background/50">
-          <div className="text-xs font-medium text-muted-foreground mb-2">Resultado:</div>
-          {language === 'sql' || language === 'json' ? (
-            <div className="rounded overflow-auto max-h-96">
-              <SyntaxHighlighter
-                language={language}
-                style={vscDarkPlus}
-                customStyle={{
-                  margin: 0,
-                  padding: '0.75rem',
-                  fontSize: '0.75rem',
-                  borderRadius: '0.375rem',
-                }}
-                wrapLongLines={true}
-              >
-                {outputString}
-              </SyntaxHighlighter>
-            </div>
-          ) : (
-            <div className="rounded bg-muted/50 p-3 text-xs font-mono whitespace-pre-wrap break-words overflow-auto max-h-96">
-              {outputString}
-            </div>
-          )}
+        <div className="border-t border-border bg-background/50">
+          <div className="flex items-center justify-between px-3 pt-3 pb-2">
+            <div className="text-xs font-medium text-muted-foreground">Resultado:</div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3 w-3 mr-1 text-green-600" />
+                  Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copiar
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="px-3 pb-3">
+            {language === 'sql' || language === 'json' ? (
+              <div className="rounded overflow-x-auto overflow-y-auto max-h-[600px] border border-border/50">
+                <SyntaxHighlighter
+                  language={language}
+                  style={vscDarkPlus}
+                  customStyle={{
+                    margin: 0,
+                    padding: '0.75rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '0.375rem',
+                    minWidth: 'max-content',
+                  }}
+                  wrapLongLines={false}
+                  showLineNumbers={true}
+                >
+                  {outputString}
+                </SyntaxHighlighter>
+              </div>
+            ) : (
+              <div className="rounded bg-muted/50 p-3 text-xs font-mono overflow-x-auto overflow-y-auto max-h-[600px] border border-border/50">
+                <pre className="whitespace-pre">{outputString}</pre>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

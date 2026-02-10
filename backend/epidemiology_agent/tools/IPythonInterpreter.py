@@ -7,6 +7,7 @@ import traceback
 import os
 import json
 import pickle
+import warnings
 from pathlib import Path
 
 # Import streaming events helper - use absolute import since agency_swarm loads tools without package context
@@ -104,7 +105,9 @@ class IPythonInterpreter(BaseTool):
     - `query_columns`: Lista de nombres de columnas
     - `query_row_count`: Número total de filas
     - `OUTPUT_DIR`: Directorio para guardar archivos generados
-    - `EstiloInstitucional`: Clase con paleta de colores IMSS (VERDE_IMSS, DORADO_IMSS, etc.)
+    - `PALETA_IMSS`: Lista de colores institucionales ['#00594C', '#AD841F', '#9B2242', '#651D32', '#B1B3B3']
+    - `VERDE_IMSS`, `DORADO_IMSS`, `ROJO_GOB`, `TINTO`, `GRIS_TEXTO`, `NEGRO_IMSS`: Colores individuales
+    - `EstiloInstitucional`: Clase con paleta de colores IMSS
     
     MULTI-QUERY SUPPORT (Named Queries):
     - `named_queries`: Dict con todas las consultas nombradas
@@ -218,7 +221,9 @@ class IPythonInterpreter(BaseTool):
         serializable_items = {}
         skip_keys = {"__builtins__", "__name__", "pd", "np", "plt", "sns", "json", 
                      "datetime", "os", "stats", "sm", "EstiloInstitucional", "OUTPUT_DIR",
-                     "get_query", "list_queries", "named_queries"}
+                     "get_query", "list_queries", "named_queries",
+                     "PALETA_IMSS", "VERDE_IMSS", "DORADO_IMSS", "ROJO_GOB", 
+                     "TINTO", "GRIS_TEXTO", "NEGRO_IMSS"}
         
         for key, value in namespace.items():
             if key in skip_keys or key.startswith("_"):
@@ -291,9 +296,26 @@ class IPythonInterpreter(BaseTool):
             
             try:
                 import seaborn as sns
+                # Suppress FutureWarning for palette without hue (seaborn 0.13+)
+                warnings.filterwarnings("ignore", category=FutureWarning, module="seaborn")
                 namespace["sns"] = sns
             except ImportError:
                 pass
+            
+            # Inject institutional color palette as easy-to-use variables
+            namespace["PALETA_IMSS"] = [
+                EstiloInstitucional.VERDE_IMSS,
+                EstiloInstitucional.DORADO_IMSS,
+                EstiloInstitucional.ROJO_GOB,
+                EstiloInstitucional.TINTO,
+                EstiloInstitucional.GRIS_TEXTO,
+            ]
+            namespace["VERDE_IMSS"] = EstiloInstitucional.VERDE_IMSS
+            namespace["DORADO_IMSS"] = EstiloInstitucional.DORADO_IMSS
+            namespace["ROJO_GOB"] = EstiloInstitucional.ROJO_GOB
+            namespace["TINTO"] = EstiloInstitucional.TINTO
+            namespace["GRIS_TEXTO"] = EstiloInstitucional.GRIS_TEXTO
+            namespace["NEGRO_IMSS"] = EstiloInstitucional.NEGRO
 
             try:
                 import scipy.stats as stats

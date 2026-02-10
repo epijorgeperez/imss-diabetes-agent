@@ -18,7 +18,11 @@ import { usePackageGenerator } from '@/hooks/usePackageGenerator'
 
 type ViewMode = 'templates' | 'config' | 'exploration' | 'chat'
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  userEmail: string
+}
+
+export function ChatInterface({ userEmail }: ChatInterfaceProps) {
   const { chatId, isReady } = useChatId()
   const {
     currentSession,
@@ -211,7 +215,7 @@ export function ChatInterface() {
       try {
         // Start streaming
         console.log('[ChatInterface] Starting stream for message:', content.substring(0, 50))
-        await stream(content, chatId)
+        await stream(content, chatId, userEmail)
         console.log('[ChatInterface] Stream completed')
       } catch (err) {
         console.error('[ChatInterface] Stream error:', err)
@@ -227,7 +231,7 @@ export function ChatInterface() {
         })
       }
     },
-    [chatId, isReady, addMessage, stream, resetStream]
+    [chatId, isReady, addMessage, stream, resetStream, userEmail]
   )
 
   const handleSelectTemplate = useCallback((template: Template) => {
@@ -264,7 +268,7 @@ export function ChatInterface() {
           description: 'Esto puede tomar unos segundos',
         })
 
-        const packagePayload = await generatePackage(params, chatId)
+        const packagePayload = await generatePackage(params, chatId, userEmail)
 
         if (packagePayload) {
           // Create assistant message with package data
@@ -300,7 +304,7 @@ export function ChatInterface() {
         setMessages((prev) => [...prev, errorMessage])
       }
     },
-    [chatId, isReady, selectedTemplate, addMessage, generatePackage, toast, updateSessionTitle]
+    [chatId, isReady, selectedTemplate, addMessage, generatePackage, toast, updateSessionTitle, userEmail]
   )
 
   const handleSelectChat = useCallback(

@@ -28,7 +28,7 @@ import threading
 import contextvars
 import inspect
 from fastapi.staticfiles import StaticFiles
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from pydantic import BaseModel
 
 load_dotenv()
@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 from agency import create_agency, load_threads_for_chat, save_threads_for_chat
 from agency_swarm import run_fastapi
+from auth import register_user, login_user, get_all_users, log_usage, get_usage_logs, get_usage_stats
 
 # Context variable for request-scoped chat_id (safe for async concurrency)
 # Usar contextvars en lugar de threading.local() para soporte multi-usuario concurrente
@@ -207,6 +208,7 @@ except Exception as e:
 class ChatRequest(PydanticBaseModel):
     message: str
     chat_id: str
+    user_email: Optional[str] = None
 
 # Note: emit_tool_event is now in epidemiology_agent/tools/streaming_events.py
 
@@ -322,10 +324,43 @@ async def stream_agency_response(message: str, chat_id: str):
             del _streaming_queues[chat_id]
 
 @app.post("/imss-diabetes/stream_response")
-async def stream_response_endpoint(request: ChatRequest):
+async def stream_response_endpoint(request: ChatRequest, raw_request: Request):
     """Custom SSE streaming endpoint with real-time tool events."""
+    import time as _time
+    _start = _time.monotonic()
+    _user_email = request.user_email
+    _chat_id = request.chat_id
+    _message = request.message
+    _ip = raw_request.client.host if raw_request.client else None
+
+    async def _wrapped_stream():
+        tools_seen: list[str] = []
+        async for chunk in stream_agency_response(_message, _chat_id):
+            # Capture tool names from SSE events for logging
+            if chunk.startswith("event: function_call\n"):
+                try:
+                    data_line = chunk.split("data: ", 1)[1].split("\n")[0]
+                    tool_name = json.loads(data_line).get("name")
+                    if tool_name and tool_name not in tools_seen:
+                        tools_seen.append(tool_name)
+                except Exception:
+                    pass
+            yield chunk
+        # Log after stream completes
+        if _user_email:
+            duration_ms = int((_time.monotonic() - _start) * 1000)
+            log_usage(
+                user_email=_user_email,
+                chat_id=_chat_id,
+                endpoint="/stream_response",
+                message_preview=_message[:200],
+                tools_used=tools_seen or None,
+                response_duration_ms=duration_ms,
+                ip_address=_ip,
+            )
+
     return StreamingResponse(
-        stream_agency_response(request.message, request.chat_id),
+        _wrapped_stream(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -364,6 +399,7 @@ class PackageParams(BaseModel):
 class GeneratePackageRequest(BaseModel):
     params: PackageParams
     chatId: str
+    user_email: Optional[str] = None
 
 
 class KPIItem(BaseModel):
@@ -673,8 +709,11 @@ async def get_templates():
 
 
 @app.post("/imss-diabetes/generate_package")
-async def generate_package(request: GeneratePackageRequest):
+async def generate_package(request: GeneratePackageRequest, raw_request: Request):
     """Generate a directive package based on template and parameters."""
+    import time as _time
+    _start = _time.monotonic()
+    
     logger.info(f"PACKAGE: Generating package for template {request.params.templateId}")
     
     # Find template
@@ -731,13 +770,82 @@ async def generate_package(request: GeneratePackageRequest):
         package = parse_package_response(response_text, template, request.params)
         
         logger.info(f"PACKAGE: Successfully generated package: {package.title}")
+        
+        # Log usage
+        if request.user_email:
+            duration_ms = int((_time.monotonic() - _start) * 1000)
+            _ip = raw_request.client.host if raw_request.client else None
+            log_usage(
+                user_email=request.user_email,
+                chat_id=request.chatId,
+                endpoint="/generate_package",
+                message_preview=f"[PACKAGE] {request.params.templateId}",
+                tools_used=["generate_package"],
+                response_duration_ms=duration_ms,
+                ip_address=_ip,
+            )
+        
         return {"success": True, "package": package.model_dump()}
         
     except Exception as e:
         logger.error(f"PACKAGE: Error generating package: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 5. EJECUCIÓN MANUAL (SOLO PARA DEBUG) ---
+# --- 7. AUTH & ADMIN ENDPOINTS ---
+
+class RegisterRequest(BaseModel):
+    nombre: str
+    email: str
+    adscripcion: str
+
+class LoginRequest(BaseModel):
+    email: str
+
+
+@app.post("/auth/register")
+async def auth_register(request: RegisterRequest):
+    """Register a new user with institutional email."""
+    try:
+        user = register_user(request.nombre, request.email, request.adscripcion)
+        return {"user": user}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/auth/login")
+async def auth_login(request: LoginRequest):
+    """Login by institutional email."""
+    user = login_user(request.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado. ¿Ya te registraste?")
+    return {"user": user}
+
+
+@app.get("/admin/users")
+async def admin_users():
+    """List all registered users."""
+    return {"users": get_all_users()}
+
+
+@app.get("/admin/usage")
+async def admin_usage(
+    email: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 100,
+):
+    """Query usage logs with optional filters."""
+    logs = get_usage_logs(email=email, from_date=from_date, to_date=to_date, limit=limit)
+    return {"logs": logs, "count": len(logs)}
+
+
+@app.get("/admin/stats")
+async def admin_stats():
+    """Aggregated usage statistics and anomaly detection."""
+    return get_usage_stats()
+
+
+# --- 8. EJECUCIÓN MANUAL (SOLO PARA DEBUG) ---
 if __name__ == "__main__":
     import uvicorn
     # Ya no creamos 'app' aquí, usamos la global

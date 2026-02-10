@@ -115,8 +115,8 @@ fig, ax = plt.subplots(figsize=(10, 8))
 hombres = df[df['Sexo'] == 1]
 mujeres = df[df['Sexo'] == 2]
 
-ax.barh(hombres['Grupo_edad'], -hombres['casos'], color='steelblue', label='Hombres')
-ax.barh(mujeres['Grupo_edad'], mujeres['casos'], color='coral', label='Mujeres')
+ax.barh(hombres['Grupo_edad'], -hombres['casos'], color=VERDE_IMSS, label='Hombres')
+ax.barh(mujeres['Grupo_edad'], mujeres['casos'], color=DORADO_IMSS, label='Mujeres')
 
 ax.set_xlabel('Casos')
 ax.set_title('Pirámide de Casos de Diabetes por Edad y Sexo')

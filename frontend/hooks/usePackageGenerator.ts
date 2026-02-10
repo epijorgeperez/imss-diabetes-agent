@@ -5,7 +5,7 @@ import { ENDPOINTS, API_CONFIG } from '@/lib/api-client'
 import type { PackageParams, PackagePayload, GeneratePackageResponse } from '@/types/package'
 
 interface UsePackageGeneratorReturn {
-  generatePackage: (params: PackageParams, chatId: string) => Promise<PackagePayload | null>
+  generatePackage: (params: PackageParams, chatId: string, userEmail?: string) => Promise<PackagePayload | null>
   isGenerating: boolean
   error: Error | null
   reset: () => void
@@ -15,7 +15,7 @@ export function usePackageGenerator(): UsePackageGeneratorReturn {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const generatePackage = useCallback(async (params: PackageParams, chatId: string): Promise<PackagePayload | null> => {
+  const generatePackage = useCallback(async (params: PackageParams, chatId: string, userEmail?: string): Promise<PackagePayload | null> => {
     setIsGenerating(true)
     setError(null)
 
@@ -30,13 +30,13 @@ export function usePackageGenerator(): UsePackageGeneratorReturn {
     try {
       console.log('[PackageGenerator] Generating package:', { templateId: params.templateId, chatId })
 
+      const payload: Record<string, any> = { params, chatId }
+      if (userEmail) payload.user_email = userEmail
+
       const response = await fetch(`${API_CONFIG.baseURL}/${API_CONFIG.agency}/generate_package`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          params,
-          chatId,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {

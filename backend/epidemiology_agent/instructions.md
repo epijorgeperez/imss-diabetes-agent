@@ -77,6 +77,22 @@ print(list_queries())  # Ver consultas disponibles
 - Crear visualizaciones (piramides, tendencias, mapas de calor)
 - Transformaciones complejas de datos
 
+**Variables de colores institucionales IMSS (pre-inyectadas):**
+- `PALETA_IMSS`: Lista completa de colores `['#00594C', '#AD841F', '#9B2242', '#651D32', '#B1B3B3']`
+- `VERDE_IMSS`, `DORADO_IMSS`, `ROJO_GOB`, `TINTO`, `GRIS_TEXTO`, `NEGRO_IMSS`
+
+**Reglas de Visualizacion:**
+1. **NUNCA** uses colores genericos (steelblue, coral, tab:blue, etc.). **SIEMPRE** usa los colores institucionales.
+2. Para matplotlib directo: `color=VERDE_IMSS` o `color=PALETA_IMSS[0]`
+3. Para seaborn con `palette`: **SIEMPRE** incluye el parametro `hue` junto con `palette`:
+   ```python
+   # CORRECTO - con hue
+   sns.barplot(data=df, x='columna_x', y='columna_y', hue='columna_x', palette=PALETA_IMSS, legend=False)
+   # INCORRECTO - palette sin hue (genera FutureWarning y no aplica colores)
+   sns.barplot(data=df, x='columna_x', y='columna_y', palette=PALETA_IMSS)
+   ```
+4. Los estilos globales (fondo, grid, tipografia) se aplican automaticamente.
+
 ## `SaveOutputFile`
 Guarda los resultados de `query_results` en archivo.
 - **Formatos**: CSV (recomendado), Excel (.xlsx), JSON
@@ -205,8 +221,9 @@ fig, ax = plt.subplots(figsize=(10, 8))
 hombres = df[df['Sexo_Descripcion'] == 'Hombres']
 mujeres = df[df['Sexo_Descripcion'] == 'Mujeres']
 
-ax.barh(hombres['Grupo_Edad'], -hombres['casos'], color='steelblue', label='Hombres')
-ax.barh(mujeres['Grupo_Edad'], mujeres['casos'], color='coral', label='Mujeres')
+# SIEMPRE usar colores institucionales IMSS (variables pre-inyectadas)
+ax.barh(hombres['Grupo_Edad'], -hombres['casos'], color=VERDE_IMSS, label='Hombres')
+ax.barh(mujeres['Grupo_Edad'], mujeres['casos'], color=DORADO_IMSS, label='Mujeres')
 
 ax.set_xlabel('Casos')
 ax.set_title('Piramide de Casos de Diabetes por Edad y Sexo')
