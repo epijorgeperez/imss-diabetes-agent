@@ -845,6 +845,21 @@ async def admin_stats():
     return get_usage_stats()
 
 
+@app.get("/admin/thread/{chat_id}")
+async def admin_thread(chat_id: str):
+    """Return full conversation thread for a given chat_id."""
+    from pathlib import Path
+    thread_file = Path(__file__).parent / "files" / "thread_state" / f"messages_{chat_id}.json"
+    if not thread_file.exists():
+        raise HTTPException(status_code=404, detail="Thread not found")
+    try:
+        with thread_file.open("r", encoding="utf-8") as f:
+            messages = json.load(f)
+        return {"chat_id": chat_id, "messages": messages, "count": len(messages)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # --- 8. EJECUCIÓN MANUAL (SOLO PARA DEBUG) ---
 if __name__ == "__main__":
     import uvicorn

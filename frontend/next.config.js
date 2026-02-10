@@ -30,6 +30,10 @@ const nextConfig = {
         source: '/files/:path*',
         destination: 'http://127.0.0.1:8001/files/:path*', // Proxy to backend
       },
+      {
+        source: '/api/admin/:path*',
+        destination: 'http://127.0.0.1:8001/admin/:path*', // Proxy admin endpoints
+      },
     ]
   },
   webpack: (config) => {

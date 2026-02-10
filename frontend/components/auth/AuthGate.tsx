@@ -95,7 +95,7 @@ export function AuthGate({ children }: AuthGateProps) {
                   </label>
                   <Input
                     id="nombre"
-                    placeholder="Dr. Juan Pérez López"
+                    placeholder="Juan Pérez López"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
                     required
@@ -109,7 +109,7 @@ export function AuthGate({ children }: AuthGateProps) {
                   </label>
                   <Input
                     id="adscripcion"
-                    placeholder="OOAD Jalisco / UMF 34 / Delegación Norte"
+                    placeholder="OOAD Jalisco / UMF 34"
                     value={adscripcion}
                     onChange={(e) => setAdscripcion(e.target.value)}
                     required
