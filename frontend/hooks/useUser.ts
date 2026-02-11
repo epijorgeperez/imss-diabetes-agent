@@ -9,6 +9,7 @@ const STORAGE_KEY = 'imss_diabetes_user'
 export function useUser() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null)
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -77,7 +78,46 @@ export function useUser() {
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
     setUser(null)
+    setTermsAccepted(null)
   }, [])
 
-  return { user, isLoading, register, login, logout }
+  const checkTermsStatus = useCallback(async (email: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_CONFIG.baseURL}/auth/terms_status?email=${encodeURIComponent(email)}`)
+      if (!response.ok) {
+        return false
+      }
+      const data = await response.json()
+      return data.has_accepted === true
+    } catch (error) {
+      console.error('Failed to check terms status:', error)
+      return false
+    }
+  }, [])
+
+  const acceptTerms = useCallback(async (email: string): Promise<void> => {
+    const response = await fetch(`${API_CONFIG.baseURL}/auth/accept_terms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({ detail: 'Error de conexión' }))
+      throw new Error(data.detail || `Error ${response.status}`)
+    }
+
+    setTermsAccepted(true)
+  }, [])
+
+  // Check terms status when user is loaded
+  useEffect(() => {
+    if (user?.email) {
+      checkTermsStatus(user.email).then(setTermsAccepted)
+    } else {
+      setTermsAccepted(null)
+    }
+  }, [user, checkTermsStatus])
+
+  return { user, isLoading, register, login, logout, termsAccepted, acceptTerms, checkTermsStatus }
 }

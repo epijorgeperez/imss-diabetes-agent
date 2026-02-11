@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Building2, LogIn, UserPlus, Loader2, LogOut } from 'lucide-react'
+import { TermsModal } from './TermsModal'
 
 interface AuthGateProps {
   children: ReactNode
@@ -14,7 +15,7 @@ interface AuthGateProps {
 const EMAIL_DOMAIN = 'imss.gob.mx'
 
 export function AuthGate({ children }: AuthGateProps) {
-  const { user, isLoading, register, login, logout } = useUser()
+  const { user, isLoading, register, login, logout, termsAccepted, acceptTerms } = useUser()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -24,7 +25,12 @@ export function AuthGate({ children }: AuthGateProps) {
   const [email, setEmail] = useState('')
   const [adscripcion, setAdscripcion] = useState('')
 
-  if (isLoading) {
+  const handleAcceptTerms = async () => {
+    if (!user?.email) return
+    await acceptTerms(user.email)
+  }
+
+  if (isLoading || (user && termsAccepted === null)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -32,7 +38,27 @@ export function AuthGate({ children }: AuthGateProps) {
     )
   }
 
-  if (user) {
+  // Show terms modal if user is logged in but hasn't accepted terms
+  if (user && termsAccepted === false) {
+    return (
+      <>
+        <TermsModal
+          open={true}
+          onAccept={handleAcceptTerms}
+          userEmail={user.email}
+        />
+        {/* Block interface - show overlay */}
+        <div className="flex h-screen items-center justify-center bg-background/50 backdrop-blur-sm">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+            <p className="text-muted-foreground">Esperando aceptación de términos...</p>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (user && termsAccepted === true) {
     return (
       <div className="flex h-full flex-col">
         {/* Inject user info + logout into the app */}

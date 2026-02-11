@@ -423,6 +423,12 @@ export function ChatInterface({ userEmail }: ChatInterfaceProps) {
           onSend={handleSendMessage}
           disabled={isStreaming || !isReady || isGenerating}
         />
+        {/* Fixed notice at bottom */}
+        <div className="flex-shrink-0 border-t bg-muted/50 px-4 py-2">
+          <p className="text-xs text-center text-red-600 font-semibold">
+            Prototipo experimental. Verifique siempre los datos generados.
+          </p>
+        </div>
       </div>
     </div>
   )

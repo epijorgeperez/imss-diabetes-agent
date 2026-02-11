@@ -60,6 +60,17 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_usage_email ON usage_logs(user_email);
             CREATE INDEX IF NOT EXISTS idx_usage_created ON usage_logs(created_at);
             CREATE INDEX IF NOT EXISTS idx_usage_chat ON usage_logs(chat_id);
+
+            CREATE TABLE IF NOT EXISTS terms_acceptance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email TEXT NOT NULL,
+                terms_version TEXT NOT NULL DEFAULT '1.0',
+                accepted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_email) REFERENCES users(email),
+                UNIQUE(user_email, terms_version)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_terms_email ON terms_acceptance(user_email);
         """)
         conn.commit()
         logger.info(f"AUTH: ✅ Database initialized at {DB_PATH}")
@@ -272,6 +283,67 @@ def get_usage_stats() -> dict:
         }
     finally:
         conn.close()
+
+
+# --- Terms Acceptance ---
+
+TERMS_VERSION = "1.0"  # Current version of terms and conditions
+
+def has_accepted_terms(email: str) -> bool:
+    """Check if user has accepted current terms version."""
+    email = email.strip().lower()
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM terms_acceptance WHERE user_email = ? AND terms_version = ?",
+            (email, TERMS_VERSION)
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+def accept_terms(email: str) -> dict:
+    """Record terms acceptance for a user. Returns acceptance record."""
+    email = email.strip().lower()
+    conn = _get_db()
+    try:
+        # Check if user exists
+        user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        if not user:
+            raise ValueError(f"Usuario {email} no encontrado")
+        
+        # Insert or update acceptance
+        conn.execute(
+            """INSERT OR REPLACE INTO terms_acceptance (user_email, terms_version, accepted_at)
+               VALUES (?, ?, ?)""",
+            (email, TERMS_VERSION, datetime.now().isoformat())
+        )
+        conn.commit()
+        
+        acceptance = conn.execute(
+            "SELECT * FROM terms_acceptance WHERE user_email = ? AND terms_version = ?",
+            (email, TERMS_VERSION)
+        ).fetchone()
+        
+        logger.info(f"AUTH: ✅ Terms accepted by {email} (version {TERMS_VERSION})")
+        return dict(acceptance)
+    except sqlite3.IntegrityError as e:
+        logger.error(f"AUTH: Failed to accept terms: {e}")
+        raise ValueError(f"Error al registrar aceptación de términos: {e}")
+    finally:
+        conn.close()
+
+
+def get_terms_status(email: str) -> dict:
+    """Get terms acceptance status for a user."""
+    email = email.strip().lower()
+    has_accepted = has_accepted_terms(email)
+    return {
+        "has_accepted": has_accepted,
+        "current_version": TERMS_VERSION,
+        "user_email": email
+    }
 
 
 # Initialize on import

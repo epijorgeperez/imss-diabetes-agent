@@ -28,7 +28,7 @@ import threading
 import contextvars
 import inspect
 from fastapi.staticfiles import StaticFiles
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Query
 from pydantic import BaseModel
 
 load_dotenv()
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 from agency import create_agency, load_threads_for_chat, save_threads_for_chat
 from agency_swarm import run_fastapi
-from auth import register_user, login_user, get_all_users, log_usage, get_usage_logs, get_usage_stats
+from auth import register_user, login_user, get_all_users, log_usage, get_usage_logs, get_usage_stats, accept_terms, get_terms_status, has_accepted_terms
 
 # Context variable for request-scoped chat_id (safe for async concurrency)
 # Usar contextvars en lugar de threading.local() para soporte multi-usuario concurrente
@@ -819,6 +819,22 @@ async def auth_login(request: LoginRequest):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado. ¿Ya te registraste?")
     return {"user": user}
+
+
+@app.post("/auth/accept_terms")
+async def auth_accept_terms(request: LoginRequest):
+    """Record terms acceptance for a user."""
+    try:
+        acceptance = accept_terms(request.email)
+        return {"success": True, "acceptance": acceptance}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/auth/terms_status")
+async def auth_terms_status(email: str = Query(..., description="User email")):
+    """Get terms acceptance status for a user."""
+    return get_terms_status(email)
 
 
 @app.get("/admin/users")
