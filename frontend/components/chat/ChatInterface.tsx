@@ -428,6 +428,9 @@ export function ChatInterface({ userEmail }: ChatInterfaceProps) {
           <p className="text-xs text-center text-red-600 font-semibold">
             Prototipo experimental. Verifique siempre los datos generados.
           </p>
+          <p className="text-[11px] text-center text-muted-foreground mt-1">
+            Desarrollador: <a href="mailto:jorge.perezoli@imss.gob.mx" className="underline hover:text-primary">jorge.perezoli@imss.gob.mx</a>
+          </p>
         </div>
       </div>
     </div>
