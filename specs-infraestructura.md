@@ -1,55 +1,137 @@
 # Especificaciones Técnicas y Contexto de Infraestructura
+
 **Proyecto:** Agente Analítico de Diabetes IMSS (Backend Python + Frontend Next.js)
 **Entorno:** Servidor Físico "On-Premise" (Ubuntu 22.04 LTS)
 
 ## 1. Topología de Red y Conectividad
+
 [cite_start]El servidor opera en una arquitectura de red dual que el software debe respetar estrictamente para el enrutamiento de tráfico[cite: 78].
 
-* [cite_start]**Sistema Operativo:** Ubuntu 22.04 LTS[cite: 73].
-* **Interfaz de Internet (`enp27s0`):** IP `192.168.1.66`. [cite_start]Esta interfaz debe usarse para la salida hacia la API de OpenAI[cite: 82].
-* **Interfaz Intranet IMSS (`enx00e04c680190`):** IP `11.124.14.201`. [cite_start]Esta interfaz es la **única** ruta física hacia la base de datos SQL Server[cite: 83].
-* [cite_start]**Restricción de Acceso:** El servidor no es accesible públicamente desde internet; solo desde la VPN o red institucional[cite: 66, 67]. [cite_start]El despliegue depende de actualizaciones tipo "Pull" desde el servidor[cite: 17].
+- [cite_start]**Sistema Operativo:** Ubuntu 22.04 LTS[cite: 73].
+- **Interfaz de Internet (`enp27s0`):** IP `192.168.1.66`. [cite_start]Esta interfaz debe usarse para la salida hacia la API de OpenAI[cite: 82].
+- **Interfaz Intranet IMSS (`enx00e04c680190`):** IP `11.124.14.201`. [cite_start]Esta interfaz es la **única** ruta física hacia la base de datos SQL Server[cite: 83].
+- [cite_start]**Restricción de Acceso:** El servidor no es accesible públicamente desde internet; solo desde la VPN o red institucional[cite: 66, 67]. [cite_start]El despliegue depende de actualizaciones tipo "Pull" desde el servidor[cite: 17].
 
 ## 2. Conexión a Base de Datos (Punto Crítico)
+
 La conexión a la base de datos es el desafío técnico principal debido a la antigüedad del servidor SQL del IMSS y la modernidad de Ubuntu 22.04.
 
-* [cite_start]**Motor de Base de Datos:** SQL Server (Legacy) ubicado en la IP **11.33.41.96**[cite: 76, 84].
-* [cite_start]**Driver Instalado:** El servidor ya cuenta con `Microsoft ODBC Driver 17 for SQL Server` instalado y funcional[cite: 94, 292].
-* **Conflicto SSL/TLS (CRÍTICO):** Ubuntu 22.04 usa OpenSSL 3.0, el cual bloquea por defecto los protocolos de seguridad antiguos que usa el servidor SQL del IMSS.
-    * [cite_start]*Síntoma previo:* Error `SSL routines::unsupported protocol`[cite: 348].
-    * [cite_start]*Solución previa aplicada:* Se requirió configurar OpenSSL con `SECLEVEL=0` y permitir `UnsafeLegacyRenegotiation`[cite: 317, 318].
-    * *Instrucción para Python/Agency Swarm:* El string de conexión (Connection String) de `pyodbc` o `sqlalchemy` debe configurarse explícitamente para confiar en el certificado del servidor y no requerir encriptación estricta si el handshake falla.
-    * *Parámetros sugeridos:* `TrustServerCertificate=yes`, `Encrypt=no`.
+- [cite_start]**Motor de Base de Datos:** SQL Server (Legacy) ubicado en la IP **11.33.41.96**[cite: 76, 84].
+- [cite_start]**Driver Instalado:** El servidor ya cuenta con `Microsoft ODBC Driver 17 for SQL Server` instalado y funcional[cite: 94, 292].
+- **Conflicto SSL/TLS (CRÍTICO):** Ubuntu 22.04 usa OpenSSL 3.0, el cual bloquea por defecto los protocolos de seguridad antiguos que usa el servidor SQL del IMSS.
+  - [cite_start]*Síntoma previo:* Error `SSL routines::unsupported protocol`[cite: 348].
+  - [cite_start]*Solución previa aplicada:* Se requirió configurar OpenSSL con `SECLEVEL=0` y permitir `UnsafeLegacyRenegotiation`[cite: 317, 318].
+  - *Instrucción para Python/Agency Swarm:* El string de conexión (Connection String) de `pyodbc` o `sqlalchemy` debe configurarse explícitamente para confiar en el certificado del servidor y no requerir encriptación estricta si el handshake falla.
+  - *Parámetros sugeridos:* `TrustServerCertificate=yes`, `Encrypt=no`.
 
 Desafío Crítico de Conectividad SSL (Legacy): Existe una incompatibilidad nativa entre Ubuntu 22.04 (OpenSSL 3.0) y el SQL Server Institucional (Legacy 2008/2012) que provoca el error SSL routines::unsupported protocol durante el handshake, independientemente de la configuración del driver ODBC. Solución Implementada: La conexión requiere inyectar una configuración OpenSSL permisiva (SECLEVEL=0, UnsafeLegacyRenegotiation) ubicada en /etc/shiny-server/openssl.cnf. Nota de Implementación: Es imperativo que la variable de entorno OPENSSL_CONF apunte a este archivo antes de que inicie el proceso de Python. Además, se verificó que el archivo de configuración debe tener permisos de lectura global (chmod 644); si el archivo es solo legible por root, OpenSSL fallará silenciosamente y bloqueará la conexión. La variable ya ha sido configurada en el script activate del entorno virtual para desarrollo local.
 
 ## 3. Manejo de Datos y Rendimiento
+
 El agente debe operar bajo reglas estrictas de consumo de datos para evitar colapsar la memoria del servidor o sufrir timeouts.
 
-* [cite_start]**Volumen:** Las tablas contienen más de **1 millón de registros**[cite: 208].
-* [cite_start]**Latencia Histórica:** La carga de datos crudos en la aplicación anterior tomaba entre **5 a 8 minutos**, provocando timeouts en la inicialización[cite: 195, 353].
-* [cite_start]**Timeouts:** Se deben configurar timeouts extendidos en el servidor web (FastAPI/Uvicorn), similares a los **600 segundos** configurados previamente en Shiny Server, para dar tiempo a consultas complejas[cite: 333].
+- [cite_start]**Volumen:** Las tablas contienen más de **1 millón de registros**[cite: 208].
+- [cite_start]**Latencia Histórica:** La carga de datos crudos en la aplicación anterior tomaba entre **5 a 8 minutos**, provocando timeouts en la inicialización[cite: 195, 353].
+- [cite_start]**Timeouts:** Se deben configurar timeouts extendidos en el servidor web (FastAPI/Uvicorn), similares a los **600 segundos** configurados previamente en Shiny Server, para dar tiempo a consultas complejas[cite: 333].
 
 ## 4. Seguridad y Gestión de Credenciales
-* **Variables de Entorno:** Las credenciales (`DB_USER`, `DB_PASSWORD`, `DB_NAME`, `OPENAI_API_KEY`) deben residir exclusivamente en un archivo `.env` en el servidor. [cite_start]**Nunca** en el repositorio[cite: 87, 214].
-* **Permisos de Archivos:** Históricamente, hubo problemas donde el usuario del servicio no podía leer los archivos o librerías.
-    * [cite_start]Se debe asegurar que el usuario que ejecute el backend (ej. `www-data` o un usuario `agent`) tenga propiedad (`chown`) sobre la carpeta del proyecto y acceso de lectura al `.env`[cite: 8, 197].
-    * [cite_start]Si se usan entornos virtuales (`venv`), asegurarse de que el usuario del servicio tenga permisos de ejecución sobre los binarios de Python[cite: 9].
+
+- **Variables de Entorno:** Las credenciales (`DB_USER`, `DB_PASSWORD`, `DB_NAME`, `OPENAI_API_KEY`) deben residir exclusivamente en un archivo `.env` en el servidor. [cite_start]**Nunca** en el repositorio[cite: 87, 214].
+- **Permisos de Archivos:** Históricamente, hubo problemas donde el usuario del servicio no podía leer los archivos o librerías.
+  - [cite_start]Se debe asegurar que el usuario que ejecute el backend (ej. `www-data` o un usuario `agent`) tenga propiedad (`chown`) sobre la carpeta del proyecto y acceso de lectura al `.env`[cite: 8, 197].
+  - [cite_start]Si se usan entornos virtuales (`venv`), asegurarse de que el usuario del servicio tenga permisos de ejecución sobre los binarios de Python[cite: 9].
 
 ## 5. Estrategia de Despliegue (CI/CD Manual)
+
 [cite_start]Debido a que el servidor no recibe webhooks de GitHub, se debe replicar el flujo de trabajo funcional existente[cite: 101].
 
-* **Repositorio:** GitHub (Monorepo).
-* [cite_start]**Método de Actualización:** Script de shell (`deploy.sh`) ejecutado manualmente vía SSH[cite: 18].
-* **Requisitos del Script de Despliegue:**
-    1.  [cite_start]`git pull origin main`[cite: 119].
-    2.  Actualización de dependencias (Python `pip` y Node `npm`).
-    3.  Reconstrucción del frontend (`npm run build`).
-    4.  [cite_start]Gestión de logs: Redireccionar logs de error estándar a archivos en `/var/log/` para depuración[cite: 27, 170].
-    5.  [cite_start]Reinicio de servicios (`systemctl restart ...`)[cite: 31, 39].
+- **Repositorio:** GitHub (Monorepo).
+- [cite_start]**Método de Actualización:** Script de shell (`deploy.sh`) ejecutado manualmente vía SSH[cite: 18].
+- **Requisitos del Script de Despliegue:**
+  1. [cite_start]`git pull origin main`[cite: 119].
+  2. Actualización de dependencias (Python `pip` y Node `npm`).
+  3. Reconstrucción del frontend (`npm run build`).
+  4. [cite_start]Gestión de logs: Redireccionar logs de error estándar a archivos en `/var/log/` para depuración[cite: 27, 170].
+  5. [cite_start]Reinicio de servicios (`systemctl restart ...`)[cite: 31, 39].
 
 ## Resumen de Ficheros de Configuración Críticos Existentes
+
 El desarrollador puede consultar estos archivos en el servidor actual como referencia de una configuración funcional:
-1.  [cite_start]`/etc/odbcinst.ini`: Configuración del Driver ODBC[cite: 300].
-2.  [cite_start]`/etc/shiny-server/openssl.cnf`: Configuración SSL permisiva (útil para entender qué parámetros de seguridad requiere la DB)[cite: 307].
-3.  [cite_start]`/srv/shiny-server/update.sh`: Script de referencia para la lógica de actualización[cite: 14].
+
+1. [cite_start]`/etc/odbcinst.ini`: Configuración del Driver ODBC[cite: 300].
+2. [cite_start]`/etc/shiny-server/openssl.cnf`: Configuración SSL permisiva (útil para entender qué parámetros de seguridad requiere la DB)[cite: 307].
+3. [cite_start]`/srv/shiny-server/update.sh`: Script de referencia para la lógica de actualización[cite: 14].
+
+## 6. Incidentes Resueltos (Abril 2026) y Runbook
+
+### Incidente A: Agente no accesible en `http://11.124.14.201:3000`
+
+- **Síntoma observado:** timeout al abrir `11.124.14.201:3000` desde red institucional.
+- **Causa raíz:** la interfaz institucional `enx00e04c680190` estaba `UP` pero sin dirección IPv4 (`11.124.14.201/24`), por lo que no existía conectividad real en red 11.x.
+- **Fix aplicado:**
+  1. Asignación temporal de IP para recuperación inmediata.
+  2. Configuración persistente con Netplan (`dhcp4: false` + `addresses: 11.124.14.201/24`).
+  3. Desactivar manejo de red de `cloud-init` para evitar sobreescritura en reinicio.
+- **Estado final:** IP institucional persistente tras reboot y ruta a SQL operativa.
+
+**Comandos de verificación:**
+
+```bash
+ip -br addr show enx00e04c680190
+ip route | grep 11.33.41.96
+curl -I --max-time 5 http://11.124.14.201:3000
+```
+
+### Incidente B: Frontend caído después de reinicio (puerto 3000)
+
+- **Síntoma observado:** después de reboot había `connection refused` en `:3000`, mientras backend en `:8001` seguía activo.
+- **Causa raíz:** solo existía servicio systemd para backend (`imss-diabetes-agent.service`). El frontend corría manualmente en sesiones previas y no arrancaba automáticamente.
+- **Fix aplicado:**
+  1. Crear servicio dedicado `imss-diabetes-frontend.service`.
+  2. Ajustar `ExecStart` para no depender de `pnpm` en PATH de systemd (usar `npm run start -- -H 0.0.0.0 -p 3000` o ruta absoluta de `pnpm`).
+  3. Habilitar servicio al arranque.
+- **Estado final:** frontend y backend levantan automáticamente tras reinicio.
+
+**Comandos de verificación:**
+
+```bash
+sudo systemctl status imss-diabetes-frontend.service --no-pager -l
+sudo ss -ltnp | grep -E ':3000|:8001'
+curl -I --max-time 5 http://127.0.0.1:3000
+curl -I --max-time 5 http://11.124.14.201:3000
+```
+
+### Incidente C: Shiny dashboard en `:3838/bslibdashdm` con timeout
+
+- **Síntoma observado:** `shiny-server` activo y escuchando en `:3838`, pero la app `/bslibdashdm/` no respondía (timeout).
+- **Causa raíz:** error de consulta SQL al iniciar la app (`[ODBC Driver 17] Protocol error in TDS stream`) durante la carga de datasets pesados.
+- **Fix aplicado:**
+  1. Confirmar `OPENSSL_CONF=/etc/shiny-server/openssl.cnf` para runtime Shiny.
+  2. Robustecer conexión ODBC (legacy-safe): `Encrypt=no`, `TrustServerCertificate=yes`, `MARS_Connection=No`, `Packet Size=4096`, `Timeout=30`.
+  3. Implementar reintentos con reconexión para errores TDS transitorios.
+  4. Reducir consultas `SELECT *` masivas a columnas/filtros estrictamente necesarios.
+- **Estado final esperado:** aplicación responde en `:3838` sin congelarse al inicializar.
+
+**Comandos de verificación:**
+
+```bash
+sudo ss -ltnp | grep ':3838'
+curl -I --max-time 20 http://127.0.0.1:3838/bslibdashdm/
+curl -I --max-time 20 http://11.124.14.201:3838/bslibdashdm/
+sudo tail -n 200 /var/log/shiny-server/bslibdashdm-*.log
+```
+
+### Configuración persistente recomendada (resumen operativo)
+
+1. **Red dual:**
+   - `enp27s0` con DHCP (internet).
+   - `enx00e04c680190` estática (`11.124.14.201/24`) para intranet IMSS.
+2. **Servicios mínimos habilitados:**
+   - `imss-diabetes-agent.service` (backend).
+   - `imss-diabetes-frontend.service` (frontend).
+   - `institutional-routes.service` (rutas institucionales).
+   - `shiny-server.service` (tablero legado).
+3. **Checklist post-reboot:**
+   - `ip -br addr` incluye `11.124.14.201/24`.
+   - `ss -ltnp` muestra `:3000`, `:8001`, `:3838`.
+   - endpoints HTTP responden local y vía IP institucional.

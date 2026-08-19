@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 from agency import create_agency, load_threads_for_chat, save_threads_for_chat
 from agency_swarm import run_fastapi
-from auth import register_user, login_user, get_all_users, log_usage, get_usage_logs, get_usage_stats, accept_terms, get_terms_status, has_accepted_terms
+from auth import register_user, login_user, get_all_users, log_usage, get_usage_logs, get_usage_stats, accept_terms, get_terms_status, has_accepted_terms, verify_access_key
 
 # Context variable for request-scoped chat_id (safe for async concurrency)
 # Usar contextvars en lugar de threading.local() para soporte multi-usuario concurrente
@@ -148,6 +148,40 @@ except Exception as e:
     logger.warning(f"PERSISTENCE: Could not setup middleware: {e}")
     ChatIdCaptureMiddleware = None
 
+# --- MASTER ACCESS KEY GATE ---
+# Rutas exentas: verificación de llave, docs, archivos generados y CORS preflight.
+ACCESS_KEY_EXEMPT_PREFIXES = ("/auth/verify_key", "/docs", "/openapi.json", "/redoc", "/files")
+
+try:
+    import hmac
+    from fastapi.responses import JSONResponse as _JSONResponse
+
+    class AccessKeyMiddleware(BaseHTTPMiddleware):
+        """Requires header X-Access-Key matching ACCESS_KEY env var on all routes,
+        except the exempt prefixes above. Disabled automatically if ACCESS_KEY is unset."""
+        async def dispatch(self, request: Request, call_next):
+            path = str(request.url.path)
+            if request.method == "OPTIONS" or any(path.startswith(p) for p in ACCESS_KEY_EXEMPT_PREFIXES):
+                return await call_next(request)
+
+            configured_key = os.getenv("ACCESS_KEY", "")
+            if not configured_key:
+                # Gate disabled (no key configured, e.g. local dev)
+                return await call_next(request)
+
+            provided_key = request.headers.get("X-Access-Key", "")
+            if not hmac.compare_digest(provided_key.strip(), configured_key):
+                return _JSONResponse(
+                    status_code=401,
+                    content={"detail": "Llave de acceso inválida o no proporcionada"},
+                )
+
+            return await call_next(request)
+
+except Exception as e:
+    logger.warning(f"ACCESS: Could not setup AccessKeyMiddleware: {e}")
+    AccessKeyMiddleware = None
+
 # --- 4. CREACIÓN DE LA APP (GLOBAL) ---
 # Esto ahora se ejecuta SIEMPRE al importar el archivo, solucionando el error de Systemd.
 
@@ -180,6 +214,13 @@ app = run_fastapi(**fastapi_kwargs)
 if ChatIdCaptureMiddleware:
     app.add_middleware(ChatIdCaptureMiddleware)
     logger.info("PERSISTENCE: ✅ ChatIdCaptureMiddleware installed")
+
+if AccessKeyMiddleware:
+    app.add_middleware(AccessKeyMiddleware)
+    if os.getenv("ACCESS_KEY"):
+        logger.info("ACCESS: ✅ AccessKeyMiddleware installed (master key gate ACTIVE)")
+    else:
+        logger.warning("ACCESS: ⚠️ ACCESS_KEY not set in .env - master key gate DISABLED")
 
 # --- STATIC FILES: Serve generated files (graphs, reports) ---
 files_path = os.path.join(os.path.dirname(__file__), "epidemiology_agent", "files")
@@ -800,6 +841,17 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: str
+
+class AccessKeyRequest(BaseModel):
+    key: str
+
+
+@app.post("/auth/verify_key")
+async def auth_verify_key(request: AccessKeyRequest):
+    """Verify the shared master access key before allowing login/register."""
+    if verify_access_key(request.key):
+        return {"valid": True}
+    raise HTTPException(status_code=401, detail="Llave de acceso inválida")
 
 
 @app.post("/auth/register")

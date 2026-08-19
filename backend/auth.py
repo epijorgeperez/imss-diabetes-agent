@@ -7,6 +7,7 @@ import sqlite3
 import os
 import json
 import logging
+import hmac
 from datetime import datetime
 from typing import Optional
 
@@ -18,6 +19,22 @@ DB_PATH = os.path.join(DB_DIR, "users.db")
 
 # Configurable domain
 ALLOWED_EMAIL_DOMAIN = os.getenv("ALLOWED_EMAIL_DOMAIN", "imss.gob.mx")
+
+# Shared master key gate (simple pre-login access control).
+# Share this value only with authorized users. If ACCESS_KEY is unset/empty,
+# the gate is disabled (useful for local development).
+ACCESS_KEY = os.getenv("ACCESS_KEY", "")
+
+
+def verify_access_key(key: str) -> bool:
+    """Constant-time comparison against the shared ACCESS_KEY env var.
+
+    Returns True if the gate is disabled (ACCESS_KEY not configured) so that
+    local development without a key keeps working.
+    """
+    if not ACCESS_KEY:
+        return True
+    return hmac.compare_digest((key or "").strip(), ACCESS_KEY)
 
 
 def _get_db() -> sqlite3.Connection:

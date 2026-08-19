@@ -7,6 +7,7 @@
 ## 1. Descripción General del Sistema
 
 ### ¿Qué es?
+
 Un **agente de IA autónomo** que permite a usuarios del IMSS consultar datos epidemiológicos de diabetes usando lenguaje natural. El sistema genera análisis estadísticos, gráficos, reportes PDF y "paquetes directivos" estructurados.
 
 ### Arquitectura de Alto Nivel
@@ -43,6 +44,7 @@ Un **agente de IA autónomo** que permite a usuarios del IMSS consultar datos ep
 ### Flujo de Datos Simplificado
 
 **Modo Exploratorio (con streaming):**
+
 ```
 Usuario pregunta → Frontend → Backend (/stream_response) → Agente IA decide:
                                               │
@@ -68,6 +70,7 @@ Usuario pregunta → Frontend → Backend (/stream_response) → Agente IA decid
 ```
 
 **Modo Paquete Directivo:**
+
 ```
 Usuario selecciona plantilla → Frontend → Backend (/generate_package) → Agente IA
                                               │
@@ -86,6 +89,7 @@ Usuario selecciona plantilla → Frontend → Backend (/generate_package) → Ag
 ```
 
 **Multi-Query Flow:**
+
 ```
 QueryDatabase(result_name="incidencia") → named_queries["incidencia"]
 QueryDatabase(result_name="mortalidad") → named_queries["mortalidad"]
@@ -155,35 +159,41 @@ imss-diabetes-agent/
 
 ### 🎯 Cambios de Comportamiento del Agente
 
-| Quiero cambiar... | Archivo a modificar |
-|-------------------|---------------------|
-| Cómo responde el agente, su personalidad, reglas | `backend/epidemiology_agent/instructions.md` |
-| Qué modelo de IA usa (GPT-4, etc.) | `backend/epidemiology_agent/epidemiology_agent.py` |
-| Consultas SQL permitidas/bloqueadas | `backend/epidemiology_agent/tools/QueryDatabase.py` |
-| Sistema multi-query (named_queries) | `backend/epidemiology_agent/tools/QueryDatabase.py` + `IPythonInterpreter.py` |
-| Formato de gráficas (colores, estilos) | `backend/epidemiology_agent/tools/IPythonInterpreter.py` |
-| Diseño del PDF (logos, colores IMSS) | `backend/epidemiology_agent/tools/GenerateReportTool.py` |
+
+| Quiero cambiar...                                | Archivo a modificar                                                           |
+| ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Cómo responde el agente, su personalidad, reglas | `backend/epidemiology_agent/instructions.md`                                  |
+| Qué modelo de IA usa (GPT-4, etc.)               | `backend/epidemiology_agent/epidemiology_agent.py`                            |
+| Consultas SQL permitidas/bloqueadas              | `backend/epidemiology_agent/tools/QueryDatabase.py`                           |
+| Sistema multi-query (named_queries)              | `backend/epidemiology_agent/tools/QueryDatabase.py` + `IPythonInterpreter.py` |
+| Formato de gráficas (colores, estilos)           | `backend/epidemiology_agent/tools/IPythonInterpreter.py`                      |
+| Diseño del PDF (logos, colores IMSS)             | `backend/epidemiology_agent/tools/GenerateReportTool.py`                      |
+
 
 ### 📦 Cambios en Paquetes Directivos
 
-| Quiero cambiar... | Archivo a modificar |
-|-------------------|---------------------|
-| Agregar/modificar plantillas | `backend/templates/catalog.json` |
-| Prompt que genera el paquete | `backend/main.py` → función `build_package_prompt()` |
+
+| Quiero cambiar...                      | Archivo a modificar                                    |
+| -------------------------------------- | ------------------------------------------------------ |
+| Agregar/modificar plantillas           | `backend/templates/catalog.json`                       |
+| Prompt que genera el paquete           | `backend/main.py` → función `build_package_prompt()`   |
 | Cómo se parsea la respuesta del agente | `backend/main.py` → función `parse_package_response()` |
-| Estructura del paquete (tipos) | `frontend/types/package.ts` |
-| Cómo se ve la tarjeta del paquete | `frontend/components/packages/PackageCard.tsx` |
-| KPIs, correo, acciones | `frontend/components/packages/*.tsx` |
+| Estructura del paquete (tipos)         | `frontend/types/package.ts`                            |
+| Cómo se ve la tarjeta del paquete      | `frontend/components/packages/PackageCard.tsx`         |
+| KPIs, correo, acciones                 | `frontend/components/packages/*.tsx`                   |
+
 
 ### 🖥️ Cambios en UI/Frontend
 
-| Quiero cambiar... | Archivo a modificar |
-|-------------------|---------------------|
-| Endpoint del backend | `frontend/lib/api-client.ts` |
-| Flujo principal de la app | `frontend/components/chat/ChatInterface.tsx` |
-| Renderizado de markdown/texto | `frontend/components/chat/MarkdownRenderer.tsx` |
-| Colores institucionales (UI) | `frontend/components/templates/TemplateLibrary.tsx` |
-| Selectores de parámetros | `frontend/components/studio/*.tsx` |
+
+| Quiero cambiar...             | Archivo a modificar                                 |
+| ----------------------------- | --------------------------------------------------- |
+| Endpoint del backend          | `frontend/lib/api-client.ts`                        |
+| Flujo principal de la app     | `frontend/components/chat/ChatInterface.tsx`        |
+| Renderizado de markdown/texto | `frontend/components/chat/MarkdownRenderer.tsx`     |
+| Colores institucionales (UI)  | `frontend/components/templates/TemplateLibrary.tsx` |
+| Selectores de parámetros      | `frontend/components/studio/*.tsx`                  |
+
 
 ---
 
@@ -324,13 +334,15 @@ def extract_markdown_content(response_text: str, template: dict, params: Package
 
 ### Backend (FastAPI) - Puerto 8001
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/imss-diabetes/stream_response` | POST | Chat exploratorio con streaming en tiempo real de tool calls (SSE) |
-| `/imss-diabetes/get_response_stream` | POST | Chat con streaming (SSE) - endpoint legacy de Agency Swarm |
-| `/imss-diabetes/generate_package` | POST | Genera paquete directivo |
-| `/imss-diabetes/templates` | GET | Catálogo de plantillas |
-| `/files/outputs/*` | GET | Archivos estáticos (gráficas, CSV) |
+
+| Endpoint                             | Método | Descripción                                                        |
+| ------------------------------------ | ------ | ------------------------------------------------------------------ |
+| `/imss-diabetes/stream_response`     | POST   | Chat exploratorio con streaming en tiempo real de tool calls (SSE) |
+| `/imss-diabetes/get_response_stream` | POST   | Chat con streaming (SSE) - endpoint legacy de Agency Swarm         |
+| `/imss-diabetes/generate_package`    | POST   | Genera paquete directivo                                           |
+| `/imss-diabetes/templates`           | GET    | Catálogo de plantillas                                             |
+| `/files/outputs/*`                   | GET    | Archivos estáticos (gráficas, CSV)                                 |
+
 
 ### Ejemplo de Request para Streaming Exploratorio
 
@@ -343,6 +355,7 @@ POST /imss-diabetes/stream_response
 ```
 
 **Respuesta (SSE - Server-Sent Events):**
+
 ```
 event: function_call
 data: {"name": "QueryDatabase", "arguments": {"sql_query": "SELECT ...", "result_name": "incidencia"}}
@@ -386,14 +399,16 @@ POST /imss-diabetes/generate_package
 
 El agente tiene acceso a estas herramientas que puede invocar autónomamente:
 
-| Herramienta | Archivo | Función |
-|-------------|---------|---------|
-| `QueryDatabase` | `tools/QueryDatabase.py` | Ejecuta SELECT en SQL Server. Soporta `result_name` para multi-query |
-| `GetDatabaseSchema` | `tools/GetDatabaseSchema.py` | Obtiene estructura de tablas |
-| `IPythonInterpreter` | `tools/IPythonInterpreter.py` | Ejecuta código Python. Acceso multi-query con `get_query()` |
-| `SaveOutputFile` | `tools/SaveOutputFile.py` | Guarda CSV/Excel |
-| `GenerateReportTool` | `tools/GenerateReportTool.py` | Genera PDF institucional |
-| `LoadImages` | `tools/LoadImages.py` | Carga imágenes generadas |
+
+| Herramienta          | Archivo                       | Función                                                              |
+| -------------------- | ----------------------------- | -------------------------------------------------------------------- |
+| `QueryDatabase`      | `tools/QueryDatabase.py`      | Ejecuta SELECT en SQL Server. Soporta `result_name` para multi-query |
+| `GetDatabaseSchema`  | `tools/GetDatabaseSchema.py`  | Obtiene estructura de tablas                                         |
+| `IPythonInterpreter` | `tools/IPythonInterpreter.py` | Ejecuta código Python. Acceso multi-query con `get_query()`          |
+| `SaveOutputFile`     | `tools/SaveOutputFile.py`     | Guarda CSV/Excel                                                     |
+| `GenerateReportTool` | `tools/GenerateReportTool.py` | Genera PDF institucional                                             |
+| `LoadImages`         | `tools/LoadImages.py`         | Carga imágenes generadas                                             |
+
 
 ### Agregar Nueva Herramienta
 
@@ -449,7 +464,7 @@ class MiNuevaHerramienta(BaseTool):
             raise
 ```
 
-4. Agency Swarm auto-descubre herramientas en la carpeta `tools/`
+1. Agency Swarm auto-descubre herramientas en la carpeta `tools/`
 
 **Nota:** El streaming es opcional pero recomendado para herramientas que tardan tiempo en ejecutarse (consultas SQL, análisis Python, etc.). El frontend mostrará las tool calls en tiempo real mientras se ejecutan.
 
@@ -465,21 +480,19 @@ Tool ejecuta → streaming_events.py → Queue por chat_id → SSE Stream → Fr
 
 **Componentes:**
 
-1. **`streaming_events.py`** - Módulo central para emitir eventos
-   - `emit_tool_start(chat_id, tool_name, arguments)` - Emite cuando una tool inicia
-   - `emit_tool_end(chat_id, tool_name, output)` - Emite cuando una tool termina
-   - Usa una queue global (`_streaming_queues`) indexada por `chat_id`
-
-2. **`main.py`** - Endpoint `/imss-diabetes/stream_response`
-   - Crea una queue por `chat_id` antes de ejecutar el agente
-   - Ejecuta el agente en un thread separado
-   - Lee eventos de la queue y los envía como SSE
-   - Limpia la queue al finalizar
-
+1. `**streaming_events.py`** - Módulo central para emitir eventos
+  - `emit_tool_start(chat_id, tool_name, arguments)` - Emite cuando una tool inicia
+  - `emit_tool_end(chat_id, tool_name, output)` - Emite cuando una tool termina
+  - Usa una queue global (`_streaming_queues`) indexada por `chat_id`
+2. `**main.py`** - Endpoint `/imss-diabetes/stream_response`
+  - Crea una queue por `chat_id` antes de ejecutar el agente
+  - Ejecuta el agente en un thread separado
+  - Lee eventos de la queue y los envía como SSE
+  - Limpia la queue al finalizar
 3. **Tools** - `QueryDatabase`, `IPythonInterpreter`, `SaveOutputFile`
-   - Importan `emit_tool_start` y `emit_tool_end`
-   - Llaman estas funciones al inicio y fin de `run()`
-   - Usan `_get_chat_id()` para obtener el `chat_id` del contexto
+  - Importan `emit_tool_start` y `emit_tool_end`
+  - Llaman estas funciones al inicio y fin de `run()`
+  - Usan `_get_chat_id()` para obtener el `chat_id` del contexto
 
 **Eventos SSE emitidos:**
 
@@ -505,6 +518,7 @@ yield emit_sse(event_type, data)  # Enviar al frontend
 ```
 
 **Importante:** 
+
 - El import debe ser **absoluto** (`from epidemiology_agent.tools.streaming_events`) porque Agency Swarm carga tools sin contexto de paquete
 - El `chat_id` se obtiene del `MasterContext` usando `self.context.get("chat_id")`
 - La queue se limpia automáticamente al finalizar la respuesta
@@ -526,12 +540,14 @@ print(list_queries())              # Ver todas las disponibles
 
 **Variables inyectadas en IPythonInterpreter:**
 
-| Variable | Tipo | Descripción |
-|----------|------|-------------|
-| `query_results` | list[dict] | Última consulta (legacy) |
-| `named_queries` | dict | Todas las consultas nombradas |
-| `get_query(name)` | function | Retorna DataFrame por nombre |
-| `list_queries()` | function | Lista consultas disponibles |
+
+| Variable          | Tipo       | Descripción                   |
+| ----------------- | ---------- | ----------------------------- |
+| `query_results`   | list[dict] | Última consulta (legacy)      |
+| `named_queries`   | dict       | Todas las consultas nombradas |
+| `get_query(name)` | function   | Retorna DataFrame por nombre  |
+| `list_queries()`  | function   | Lista consultas disponibles   |
+
 
 ### Reglas Anti-Datos-Sintéticos
 
@@ -671,7 +687,7 @@ logger.info(f"STREAMING: Queue created for {chat_id[:8]}, exists: {chat_id in _s
 
 - **Tool calls no aparecen hasta el final:** Verificar que el import es absoluto (`from epidemiology_agent.tools.streaming_events`)
 - **Queue no encontrada:** Verificar que `chat_id` se pasa correctamente y que la queue se crea antes de ejecutar el agente
-- **Import falla:** Limpiar cache de Python: `rm -rf **/__pycache__` y `rm -rf **/*.pyc`
+- **Import falla:** Limpiar cache de Python: `rm -rf **/__pycache`__ y `rm -rf **/*.pyc`
 
 **5. Probar streaming manualmente:**
 
@@ -791,12 +807,14 @@ Thread State
 
 ### Archivos Clave de Persistencia
 
-| Archivo | Propósito | Qué contiene |
-|---------|-----------|--------------|
-| `backend/main.py` | Middleware y wrappers | `ChatIdCaptureMiddleware`, `create_agency_with_persistence()` |
-| `backend/agency.py` | Callbacks de persistencia | `load_threads_for_chat()`, `save_threads_for_chat()` |
-| `tools/QueryDatabase.py` | Cache de queries | `_get_chat_id()`, `_persist_results()` |
-| `tools/IPythonInterpreter.py` | Cache de namespace | `_get_chat_id()`, `_load_namespace_from_cache()`, `_save_namespace_to_cache()` |
+
+| Archivo                       | Propósito                 | Qué contiene                                                                   |
+| ----------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `backend/main.py`             | Middleware y wrappers     | `ChatIdCaptureMiddleware`, `create_agency_with_persistence()`                  |
+| `backend/agency.py`           | Callbacks de persistencia | `load_threads_for_chat()`, `save_threads_for_chat()`                           |
+| `tools/QueryDatabase.py`      | Cache de queries          | `_get_chat_id()`, `_persist_results()`                                         |
+| `tools/IPythonInterpreter.py` | Cache de namespace        | `_get_chat_id()`, `_load_namespace_from_cache()`, `_save_namespace_to_cache()` |
+
 
 ### Cómo el Agente "Recuerda" Conversaciones Previas
 
@@ -840,8 +858,8 @@ Thread State
 
 El sistema soporta múltiples usuarios con múltiples conversaciones simultáneas usando una combinación de:
 
-1. **`contextvars.ContextVar`** - Para código async (request-scoped, seguro para concurrencia)
-2. **`threading.local`** - Para código sync en `asyncio.to_thread()` (thread-scoped)
+1. `**contextvars.ContextVar**` - Para código async (request-scoped, seguro para concurrencia)
+2. `**threading.local**` - Para código sync en `asyncio.to_thread()` (thread-scoped)
 
 ```python
 # main.py
@@ -855,6 +873,7 @@ _thread_local = threading.local()
 ```
 
 **¿Por qué ambos?**
+
 - `contextvars` mantiene el valor por request en código async
 - `threading.local` es necesario porque `asyncio.to_thread()` ejecuta en un thread pool separado
 
@@ -975,7 +994,7 @@ def _save_my_data(self, data):
         json.dump(data, f)
 ```
 
-2. **O usar el MasterContext directamente:**
+1. **O usar el MasterContext directamente:**
 
 ```python
 # Guardar en memoria compartida (solo durante la sesión)
@@ -987,7 +1006,79 @@ valor = self.context.get("mi_variable", default=None)
 
 ---
 
-## 12. Consideraciones de Seguridad
+## 12. Incidentes de Infraestructura Resueltos (Abr 2026)
+
+### 12.1 Frontend no accesible en red institucional (`11.124.14.201:3000`)
+
+**Síntoma:** timeout al abrir el frontend desde la red IMSS.
+
+**Causa raíz:** la NIC institucional `enx00e04c680190` estaba `UP` pero sin IPv4.
+
+**Fix aplicado (persistente):**
+- Netplan con IP estática `11.124.14.201/24` en `enx00e04c680190`
+- Ruta institucional hacia SQL (`11.33.41.96 via 11.124.14.254`)
+- Deshabilitar network config de `cloud-init` para evitar override en reboot
+
+**Validación rápida:**
+```bash
+ip -br addr show enx00e04c680190
+ip route | grep 11.33.41.96
+curl -I --max-time 5 http://11.124.14.201:3000
+```
+
+### 12.2 Frontend caído tras reinicio (puerto 3000 sin listener)
+
+**Síntoma:** `connection refused` en `:3000` después de reboot, con backend `:8001` activo.
+
+**Causa raíz:** backend tenía systemd (`imss-diabetes-agent.service`) pero frontend no.
+
+**Fix aplicado:**
+- Crear y habilitar `imss-diabetes-frontend.service`
+- Configurar `ExecStart` sin dependencia frágil de PATH (usar `npm` o ruta absoluta de `pnpm`)
+- Arranque en `0.0.0.0:3000`
+
+**Validación rápida:**
+```bash
+sudo systemctl status imss-diabetes-frontend.service --no-pager -l
+sudo ss -ltnp | grep -E ':3000|:8001'
+```
+
+### 12.3 Shiny en `:3838/bslibdashdm` con timeout
+
+**Síntoma:** `shiny-server` activo y escuchando en `:3838`, pero la app no responde.
+
+**Causa raíz:** error SQL legacy en runtime de la app:
+`[ODBC Driver 17 for SQL Server] Protocol error in TDS stream`.
+
+**Fix aplicado:**
+- Asegurar `OPENSSL_CONF=/etc/shiny-server/openssl.cnf` en runtime
+- Conexión ODBC robusta para SQL legacy:
+  - `Encrypt=no`
+  - `TrustServerCertificate=yes`
+  - `MARS_Connection=No`
+  - `Packet Size=4096`
+- Reintento + reconexión para errores TDS transitorios
+- Evitar `SELECT *` masivos en inicialización
+
+**Validación rápida:**
+```bash
+sudo ss -ltnp | grep ':3838'
+curl -I --max-time 20 http://127.0.0.1:3838/bslibdashdm/
+sudo tail -n 200 /var/log/shiny-server/bslibdashdm-*.log
+```
+
+### 12.4 Checklist post-reboot (obligatorio)
+
+```bash
+ip -br addr
+sudo ss -ltnp | grep -E ':3000|:8001|:3838'
+curl -I --max-time 5 http://11.124.14.201:3000
+curl -I --max-time 5 http://11.124.14.201:3838/bslibdashdm/
+```
+
+---
+
+## 13. Consideraciones de Seguridad
 
 1. **Datos sensibles NUNCA salen a Internet** - El LLM solo recibe esquemas y preguntas
 2. **Solo consultas SELECT** - El agente está instruido para solo leer datos
@@ -997,8 +1088,9 @@ valor = self.context.get("mi_variable", default=None)
 
 ---
 
-## 13. Contacto y Recursos
+## 14. Contacto y Recursos
 
 - **Framework de Agentes:** [Agency Swarm Docs](https://agency-swarm.ai)
 - **UI Components:** [Shadcn/UI](https://ui.shadcn.com)
 - **Iconos:** [Lucide Icons](https://lucide.dev/icons)
+

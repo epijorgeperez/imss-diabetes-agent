@@ -31,6 +31,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react'
+import { getAccessKeyHeaders } from '@/lib/api-client'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,9 +160,9 @@ export function AdminDashboard() {
     setError(null)
     try {
       const [statsRes, usersRes, logsRes] = await Promise.all([
-        fetch(`${ADMIN_BASE}/stats`),
-        fetch(`${ADMIN_BASE}/users`),
-        fetch(buildLogsUrl()),
+        fetch(`${ADMIN_BASE}/stats`, { headers: getAccessKeyHeaders() }),
+        fetch(`${ADMIN_BASE}/users`, { headers: getAccessKeyHeaders() }),
+        fetch(buildLogsUrl(), { headers: getAccessKeyHeaders() }),
       ])
 
       if (!statsRes.ok || !usersRes.ok || !logsRes.ok) {
@@ -197,7 +198,7 @@ export function AdminDashboard() {
 
   async function fetchLogs() {
     try {
-      const res = await fetch(buildLogsUrl())
+      const res = await fetch(buildLogsUrl(), { headers: getAccessKeyHeaders() })
       if (!res.ok) throw new Error('Error fetching logs')
       const data = await res.json()
       setLogs(data.logs || [])
@@ -216,7 +217,7 @@ export function AdminDashboard() {
     if (threadCache[chatId]) return // already cached
     setThreadLoading(chatId)
     try {
-      const res = await fetch(`${ADMIN_BASE}/thread/${chatId}`)
+      const res = await fetch(`${ADMIN_BASE}/thread/${chatId}`, { headers: getAccessKeyHeaders() })
       if (!res.ok) {
         // Thread file might not exist (e.g. no persistence for that chat)
         setThreadCache((prev) => ({ ...prev, [chatId]: [] }))

@@ -2,6 +2,7 @@
 
 import { ChatInterface } from '@/components/chat/ChatInterface'
 import { AuthGate, useUserContext } from '@/components/auth/AuthGate'
+import { AccessKeyGate } from '@/components/auth/AccessKeyGate'
 import { Building2, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -41,9 +42,11 @@ function AppContent() {
 
 export default function Home() {
   return (
-    <AuthGate>
-      <AppContent />
-    </AuthGate>
+    <AccessKeyGate>
+      <AuthGate>
+        <AppContent />
+      </AuthGate>
+    </AccessKeyGate>
   )
 }
 

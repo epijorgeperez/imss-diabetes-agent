@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { ENDPOINTS, API_CONFIG } from '@/lib/api-client'
+import { ENDPOINTS, API_CONFIG, getAccessKeyHeaders } from '@/lib/api-client'
 import type { ToolCall, ToolResult } from '@/types/chat'
 
 interface StreamState {
@@ -44,6 +44,7 @@ export function useAgencyStream() {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...getAccessKeyHeaders(),
     }
 
     if (API_CONFIG.apiToken) {

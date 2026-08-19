@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { User } from '@/types/user'
-import { API_CONFIG } from '@/lib/api-client'
+import { API_CONFIG, getAccessKeyHeaders } from '@/lib/api-client'
 
 const STORAGE_KEY = 'imss_diabetes_user'
 
@@ -28,7 +28,7 @@ export function useUser() {
     async (nombre: string, email: string, adscripcion: string): Promise<User> => {
       const response = await fetch(`${API_CONFIG.baseURL}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAccessKeyHeaders() },
         body: JSON.stringify({ nombre, email, adscripcion }),
       })
 
@@ -54,7 +54,7 @@ export function useUser() {
   const login = useCallback(async (email: string): Promise<User> => {
     const response = await fetch(`${API_CONFIG.baseURL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAccessKeyHeaders() },
       body: JSON.stringify({ email }),
     })
 
@@ -83,7 +83,9 @@ export function useUser() {
 
   const checkTermsStatus = useCallback(async (email: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_CONFIG.baseURL}/auth/terms_status?email=${encodeURIComponent(email)}`)
+      const response = await fetch(`${API_CONFIG.baseURL}/auth/terms_status?email=${encodeURIComponent(email)}`, {
+        headers: { ...getAccessKeyHeaders() },
+      })
       if (!response.ok) {
         return false
       }
@@ -98,7 +100,7 @@ export function useUser() {
   const acceptTerms = useCallback(async (email: string): Promise<void> => {
     const response = await fetch(`${API_CONFIG.baseURL}/auth/accept_terms`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAccessKeyHeaders() },
       body: JSON.stringify({ email }),
     })
 
